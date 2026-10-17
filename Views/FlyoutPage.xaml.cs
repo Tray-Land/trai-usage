@@ -72,25 +72,67 @@ public sealed partial class FlyoutPage : Page, IDisposable
     /// <summary>Raised after a redraw, which may have changed how tall the content is.</summary>
     public event EventHandler? ContentChanged;
 
+    /// <summary>
+    /// Asks every provider that's signed in on this machine, which is re-detected each time so a
+    /// new sign-in appears without restarting. It fails only when none of them answered; if some
+    /// did, their cards show and the failure becomes a warning above them.
+    /// </summary>
     private async Task RefreshAsync(CancellationToken cancellationToken)
     {
         // Nothing on screen yet gets the big ring; anything else keeps its content and spins the small one.
-        bool firstLoad = ClaudeUsageService.LastReport is null && _problem is null;
+        bool firstLoad = UsageProviders.Reports.Count == 0 && _problem is null;
         InitialRing.IsActive = firstLoad;
         LoadingRing.IsActive = !firstLoad;
         try
         {
-            UsageReport report = await ClaudeUsageService.FetchAsync(cancellationToken);
-            _problem = null;
+            IReadOnlyList<UsageProvider> providers = await UsageProviders.DetectAsync(cancellationToken);
+            if (providers.Count == 0)
+            {
+                throw new UsageUnavailableException(UsageProblem.NotSignedIn, "Neither Claude Code nor GitHub Copilot is signed in.");
+            }
+
+            Task<UsageReport>[] fetches = [.. providers.Select(p => UsageProviders.FetchAsync(p, cancellationToken))];
+            try
+            {
+                await Task.WhenAll(fetches);
+            }
+            catch when (!cancellationToken.IsCancellationRequested)
+            {
+                // Each fetch is inspected below.
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            List<ProviderFailure> failures = [];
+            for (int i = 0; i < fetches.Length; i++)
+            {
+                if (fetches[i].Exception?.InnerExceptions[0] is { } ex)
+                {
+                    failures.Add(new ProviderFailure(providers[i], ex));
+                }
+            }
+
+            if (failures.Count == fetches.Length)
+            {
+                throw failures[0];
+            }
+
+            _problem = failures.Count > 0 ? DescribeProblem(failures[0].InnerException!, failures[0].Provider) : null;
             Render();
-            App.Current.SetTrayUsage(report);
-            App.Current.SetTrayStatus(UsageFormatter.TrayStatus(report, TimeZoneInfo.Local, CultureInfo.CurrentCulture));
+            IReadOnlyList<UsageReport> reports = UsageProviders.Reports;
+            App.Current.SetTrayUsage(reports);
+            App.Current.SetTrayStatus(UsageFormatter.TrayStatus(reports, TimeZoneInfo.Local, CultureInfo.CurrentCulture));
         }
         finally
         {
             LoadingRing.IsActive = false;
             InitialRing.IsActive = false;
         }
+    }
+
+    /// <summary>Carries which provider failed to <see cref="ShowError"/> through the poller.</summary>
+    private sealed class ProviderFailure(UsageProvider provider, Exception inner) : Exception(inner.Message, inner)
+    {
+        public UsageProvider Provider { get; } = provider;
     }
 
     private void Render()
@@ -101,11 +143,11 @@ public sealed partial class FlyoutPage : Page, IDisposable
 
     private void RenderContent()
     {
-        UsageReport? report = ClaudeUsageService.LastReport;
+        IReadOnlyList<UsageReport> reports = UsageProviders.Reports;
         DateTimeOffset now = DateTimeOffset.UtcNow;
 
         // With data on screen a problem is a warning above it; with none, the problem is the content.
-        bool hasData = report is not null;
+        bool hasData = reports.Count > 0;
         CardsScroller.Visibility = hasData ? Visibility.Visible : Visibility.Collapsed;
         MessagePanel.Visibility = !hasData && _problem is not null ? Visibility.Visible : Visibility.Collapsed;
         if (_problem is { } problem)
@@ -118,45 +160,88 @@ public sealed partial class FlyoutPage : Page, IDisposable
         StatusBar.IsOpen = hasData && _problem is not null;
         StatusBar.Visibility = StatusBar.IsOpen ? Visibility.Visible : Visibility.Collapsed;
 
-        if (report is null)
+        // Only the services that are set up get any UI at all.
+        ClaudeLink.Visibility = UsageProviders.Active.Contains(UsageProvider.Claude) ? Visibility.Visible : Visibility.Collapsed;
+        CopilotLink.Visibility = UsageProviders.Active.Contains(UsageProvider.Copilot) ? Visibility.Visible : Visibility.Collapsed;
+
+        if (reports.Count == 0)
         {
+            TitleText.Text = "Usage";
+            PlanBadge.Visibility = Visibility.Collapsed;
             UpdatedText.Text = string.Empty;
             return;
         }
 
+        // With one provider the header names it and carries its plan; with several, each gets a heading.
+        bool several = reports.Count > 1;
+        TitleText.Text = several ? "Usage" : $"{(reports[0].Provider == UsageProvider.Copilot ? "Copilot" : "Claude")} usage";
+        PlanText.Text = !several ? reports[0].Plan ?? string.Empty : string.Empty;
+        PlanBadge.Visibility = PlanText.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+
         // Reuse cards across refreshes; the set of limits rarely changes.
-        UIElementCollection cards = CardsPanel.Children;
-        for (int i = 0; i < report.Limits.Count; i++)
+        UIElementCollection rows = CardsPanel.Children;
+        int index = 0;
+        foreach (UsageReport report in reports)
         {
-            if (i == cards.Count)
+            if (several)
             {
-                cards.Add(new UsageCard());
+                TextBlock heading = ReuseOrReplace(rows, index++, () => new TextBlock
+                {
+                    Margin = new Thickness(2, 4, 0, 0),
+                    Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"],
+                });
+                heading.Text = report.Plan is { } plan
+                    ? $"{UsageFormatter.ProviderName(report.Provider)} · {plan}"
+                    : UsageFormatter.ProviderName(report.Provider);
             }
 
-            ((UsageCard)cards[i]).Show(report.Limits[i], now);
+            foreach (UsageLimit limit in report.Limits)
+            {
+                ReuseOrReplace(rows, index++, () => new UsageCard()).Show(limit, now);
+            }
         }
 
-        while (cards.Count > report.Limits.Count)
+        while (rows.Count > index)
         {
-            cards.RemoveAt(cards.Count - 1);
+            rows.RemoveAt(rows.Count - 1);
         }
 
-        PlanText.Text = report.Plan ?? string.Empty;
-        PlanBadge.Visibility = report.Plan is null ? Visibility.Collapsed : Visibility.Visible;
         RenderRefreshedText();
     }
 
-    private void RenderRefreshedText() => UpdatedText.Text = ClaudeUsageService.LastReport is { } report
-        ? $"Refreshed {report.FetchedAt.Humanize()}"
+    private static T ReuseOrReplace<T>(UIElementCollection rows, int index, Func<T> create) where T : UIElement
+    {
+        if (index < rows.Count && rows[index] is T existing)
+        {
+            return existing;
+        }
+
+        T created = create();
+        if (index < rows.Count)
+        {
+            rows[index] = created;
+        }
+        else
+        {
+            rows.Add(created);
+        }
+
+        return created;
+    }
+
+    private void RenderRefreshedText() => UpdatedText.Text = UsageProviders.Reports is { Count: > 0 } reports
+        ? $"Refreshed {reports.Max(r => r.FetchedAt).Humanize()}"
         : string.Empty;
 
     private void ShowError(Exception ex)
     {
-        _problem = DescribeProblem(ex);
+        _problem = ex is ProviderFailure failure
+            ? DescribeProblem(failure.InnerException!, failure.Provider)
+            : DescribeProblem(ex, null);
         Render();
     }
 
-    private static (string Title, string Message, string Glyph) DescribeProblem(Exception ex)
+    private static (string Title, string Message, string Glyph) DescribeProblem(Exception ex, UsageProvider? provider)
     {
         const string SignInGlyph = "";
         const string WarningGlyph = "";
@@ -164,18 +249,32 @@ public sealed partial class FlyoutPage : Page, IDisposable
 
         if (ex is UsageUnavailableException unavailable)
         {
-            return unavailable.Problem switch
+            provider ??= unavailable.Provider;
+            string name = provider is { } p ? UsageFormatter.ProviderName(p) : "your usage";
+            return (unavailable.Problem, provider) switch
             {
-                UsageProblem.NotSignedIn => ("Sign in to Claude Code",
+                (UsageProblem.NotSignedIn, null) => ("Sign in to Claude Code or GitHub Copilot",
+                    "Trai Usage shows the plan limits of the account that Claude Code or GitHub Copilot is signed in to. Run claude, or run copilot and then /login, then try again.",
+                    SignInGlyph),
+                (UsageProblem.NotSignedIn, UsageProvider.Copilot) => ("Sign in to GitHub Copilot",
+                    $"{unavailable.Message} Run copilot and then /login (or sign in to Copilot in your editor), then try again.",
+                    SignInGlyph),
+                (UsageProblem.NotSignedIn, _) => ("Sign in to Claude Code",
                     "Trai Usage shows the plan limits of the Claude account that Claude Code is signed in to. Run claude, sign in, then try again.",
                     SignInGlyph),
-                UsageProblem.SignInExpired => ("Claude Code's sign-in has expired",
+                (UsageProblem.SignInExpired, UsageProvider.Copilot) => ("Copilot's sign-in was rejected",
+                    "Run copilot and then /login to sign in again, then refresh.",
+                    SignInGlyph),
+                (UsageProblem.SignInExpired, _) => ("Claude Code's sign-in has expired",
                     "Use Claude Code once to renew it, then refresh.",
                     SignInGlyph),
-                UsageProblem.RateLimited => ("Claude is limiting usage checks",
+                (UsageProblem.RateLimited, _) => ($"{name} is limiting usage checks",
                     "This will try again in a few minutes.",
                     WarningGlyph),
-                _ => ("Can't read Claude's usage",
+                (UsageProblem.NoLimits, _) => ("Nothing to track",
+                    "Your Copilot plan has unlimited usage.",
+                    WarningGlyph),
+                _ => ($"Can't read {name}'s usage",
                     "The usage response changed shape. Trai Usage may need an update.",
                     WarningGlyph),
             };
@@ -185,7 +284,7 @@ public sealed partial class FlyoutPage : Page, IDisposable
         if (ex is HttpRequestException or TaskCanceledException or IOException)
         {
             return online
-                ? ("Can't reach Claude", "Retrying shortly.", WarningGlyph)
+                ? ($"Can't reach {(provider is { } failed ? UsageFormatter.ProviderName(failed) : "the usage service")}", "Retrying shortly.", WarningGlyph)
                 : ("No internet connection", "This will update when you're back online.", OfflineGlyph);
         }
 
@@ -196,5 +295,7 @@ public sealed partial class FlyoutPage : Page, IDisposable
 
     private void SettingsButton_Click(object sender, RoutedEventArgs e) => App.Current.ShowSettings();
 
-    private void UsagePageButton_Click(object sender, RoutedEventArgs e) => App.Current.OpenUsagePage();
+    private void ClaudeLink_Click(object sender, RoutedEventArgs e) => App.Current.OpenUsagePage(UsageProvider.Claude);
+
+    private void CopilotLink_Click(object sender, RoutedEventArgs e) => App.Current.OpenUsagePage(UsageProvider.Copilot);
 }

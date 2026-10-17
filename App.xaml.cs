@@ -79,6 +79,9 @@ public partial class App : Application
 
         InitializeTrayIcon();
 
+        // Local files only, no network: lets the tray menu list just the services that are set up.
+        _ = UsageProviders.DetectAsync().ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
+
         // First run: show where the app lives instead of launching into silence.
         if (!SettingsService.HasLaunchedBefore)
         {
@@ -107,11 +110,17 @@ public partial class App : Application
     /// Draws the session and weekly bars as the tray icon. This only redraws the report the
     /// flyout already fetched, so it costs no network while the flyout is hidden.
     /// </summary>
-    internal void SetTrayUsage(UsageReport report)
+    internal void SetTrayUsage(IReadOnlyList<UsageReport> reports)
     {
-        _usageReport = report;
+        // One icon can't show every provider; the first one set up (Claude, then Copilot) gets the bars.
+        _usageReport = reports.Count > 0 ? reports[0] : null;
         DrawUsageIcon();
     }
+
+    // Claude: session and week. Copilot has monthly allowances only: the first two, usually just premium requests.
+    private static (UsageLimit? Left, UsageLimit? Right) BarLimits(UsageReport report) => report.Provider == UsageProvider.Copilot
+        ? (report.Limits.ElementAtOrDefault(0), report.Limits.ElementAtOrDefault(1))
+        : (report.Limits.FirstOrDefault(l => l.Kind == UsageLimitKind.Session), report.Limits.FirstOrDefault(l => l.Kind == UsageLimitKind.Weekly));
 
     private void DrawUsageIcon()
     {
@@ -122,10 +131,9 @@ public partial class App : Application
 
         DateTimeOffset now = DateTimeOffset.UtcNow;
         bool light = SystemThemeService.IsLight;
-        TrayBar BarFor(UsageLimitKind kind)
+        TrayBar BarFor(UsageLimit? source)
         {
-            UsageLimit? limit = report.Limits.FirstOrDefault(l => l.Kind == kind)?.AsOf(now);
-            if (limit is null)
+            if (source?.AsOf(now) is not { } limit)
             {
                 return new TrayBar(0, 0);
             }
@@ -133,9 +141,10 @@ public partial class App : Application
             return new TrayBar(limit.Percent / 100, SeverityColor(UsagePace.For(limit, now).Severity, light));
         }
 
+        (UsageLimit? left, UsageLimit? right) = BarLimits(report);
         int size = PInvoke.GetSystemMetricsForDpi(SYSTEM_METRICS_INDEX.SM_CXSMICON, PInvoke.GetDpiForSystem());
         byte[] image = TrayBarsIcon.Create(
-            size, BarFor(UsageLimitKind.Session), BarFor(UsageLimitKind.Weekly), light ? 0x40000000u : 0x50FFFFFFu);
+            size, BarFor(left), BarFor(right), light ? 0x40000000u : 0x50FFFFFFu);
 
         HICON icon;
         nint handle;
@@ -205,11 +214,11 @@ public partial class App : Application
         }
     }
 
-    /// <summary>Opens Claude's own usage page in the browser.</summary>
-    public void OpenUsagePage()
+    /// <summary>Opens a provider's own usage page in the browser.</summary>
+    internal void OpenUsagePage(UsageProvider provider)
     {
         _flyout?.HidePopup();
-        _ = Windows.System.Launcher.LaunchUriAsync(ClaudeUsageService.UsagePageUri);
+        _ = Windows.System.Launcher.LaunchUriAsync(UsageProviders.UsagePageUri(provider));
     }
 
     private void InitializeTrayIcon()
@@ -241,15 +250,28 @@ public partial class App : Application
         MenuFlyout menu = new();
         MenuFlyoutItem open = new() { Text = $"Open {DisplayName}", Icon = new FontIcon { Glyph = "" } };
         open.Click += (_, _) => ShowFlyout();
-        MenuFlyoutItem usagePage = new() { Text = "Open usage on claude.ai", Icon = new FontIcon { Glyph = "" } };
-        usagePage.Click += (_, _) => OpenUsagePage();
         MenuFlyoutItem settings = new() { Text = "Settings", Icon = new FontIcon { Glyph = "" } };
         settings.Click += (_, _) => ShowSettings();
         MenuFlyoutItem exit = new() { Text = "Exit", Icon = new FontIcon { Glyph = "" } };
         exit.Click += (_, _) => ExitApp();
 
         menu.Items.Add(open);
-        menu.Items.Add(usagePage);
+
+        // Only the services that are set up; before the first check, offer both.
+        IReadOnlyList<UsageProvider> providers = UsageProviders.Active.Count > 0
+            ? UsageProviders.Active
+            : [UsageProvider.Claude, UsageProvider.Copilot];
+        foreach (UsageProvider provider in providers)
+        {
+            MenuFlyoutItem usagePage = new()
+            {
+                Text = provider == UsageProvider.Copilot ? "Open usage on github.com" : "Open usage on claude.ai",
+                Icon = new FontIcon { Glyph = "" },
+            };
+            usagePage.Click += (_, _) => OpenUsagePage(provider);
+            menu.Items.Add(usagePage);
+        }
+
         menu.Items.Add(settings);
         menu.Items.Add(new MenuFlyoutSeparator());
         menu.Items.Add(exit);

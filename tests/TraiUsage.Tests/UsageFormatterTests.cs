@@ -76,6 +76,19 @@ public sealed class UsageFormatterTests
             Now.AddMinutes(-19));
 
         Assert.AreEqual("Session 42% · Week 18% · Sonnet 3%\nUpdated 11:41 AM",
-            UsageFormatter.TrayStatus(report, TimeZoneInfo.Utc, EnUs));
+            UsageFormatter.TrayStatus([report], TimeZoneInfo.Utc, EnUs));
+    }
+
+    [TestMethod]
+    public void TrayStatusNamesEachProviderWhenThereAreSeveral()
+    {
+        UsageReport claude = new([new UsageLimit(UsageLimitKind.Session, 42, Now.AddHours(2))], Now.AddMinutes(-19));
+        UsageReport copilot = new([new UsageLimit(UsageLimitKind.Monthly, 40, Now.AddDays(9), "Premium requests")], Now.AddMinutes(-5))
+        {
+            Provider = UsageProvider.Copilot,
+        };
+
+        Assert.AreEqual("Claude Session 42%\nCopilot Premium 40%\nUpdated 11:55 AM",
+            UsageFormatter.TrayStatus([claude, copilot], TimeZoneInfo.Utc, EnUs));
     }
 }

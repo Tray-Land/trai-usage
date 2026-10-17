@@ -63,6 +63,7 @@
                 </Grid>
 
                 <StackPanel
+                    x:Name="ClaudeCard"
                     Padding="14,12"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
@@ -83,11 +84,28 @@
                         TextWrapping="Wrap" />
                 </StackPanel>
 
+                <StackPanel
+                    x:Name="CopilotCard"
+                    Padding="14,12"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Spacing="2"
+                    Visibility="Collapsed">
+                    <TextBlock Text="GitHub Copilot account" />
+                    <TextBlock
+                        x:Name="CopilotSignInText"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+
                 <TextBlock
                     Margin="2,8,2,0"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                     Style="{StaticResource CaptionTextBlockStyle}"
-                    Text="Trai Usage reads Claude Code's sign-in to ask Claude for your plan's limits, only while this flyout is open. It never changes, renews, or copies the sign-in."
+                    Text="Trai Usage reads the sign-ins that Claude Code and GitHub Copilot already have, to ask Claude and GitHub for your plan's limits, only while this flyout is open. It shows whichever you use, and never changes, renews, or copies a sign-in."
                     TextWrapping="Wrap" />
                 <TextBlock
                     x:Name="VersionText"

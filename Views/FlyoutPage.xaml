@@ -24,9 +24,10 @@
                 Orientation="Horizontal"
                 Spacing="8">
                 <TextBlock
+                    x:Name="TitleText"
                     VerticalAlignment="Center"
                     Style="{StaticResource SubtitleTextBlockStyle}"
-                    Text="Claude usage" />
+                    Text="Usage" />
                 <Border
                     x:Name="PlanBadge"
                     Padding="6,1,6,2"
@@ -135,14 +136,26 @@
                 Width="16"
                 Height="16"
                 IsActive="False" />
-            <HyperlinkButton
-                Grid.Column="2"
-                Padding="6,4"
-                AutomationProperties.Name="Open usage on claude.ai"
-                Click="UsagePageButton_Click"
-                ToolTipService.ToolTip="Open usage on claude.ai">
-                <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="claude.ai" />
-            </HyperlinkButton>
+            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                <HyperlinkButton
+                    x:Name="ClaudeLink"
+                    Padding="6,4"
+                    AutomationProperties.Name="Open usage on claude.ai"
+                    Click="ClaudeLink_Click"
+                    ToolTipService.ToolTip="Open usage on claude.ai"
+                    Visibility="Collapsed">
+                    <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="claude.ai" />
+                </HyperlinkButton>
+                <HyperlinkButton
+                    x:Name="CopilotLink"
+                    Padding="6,4"
+                    AutomationProperties.Name="Open Copilot usage on github.com"
+                    Click="CopilotLink_Click"
+                    ToolTipService.ToolTip="Open Copilot usage on github.com"
+                    Visibility="Collapsed">
+                    <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="github.com" />
+                </HyperlinkButton>
+            </StackPanel>
         </Grid>
     </Grid>
 </Page>

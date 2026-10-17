@@ -81,11 +81,25 @@ internal static class UsageFormatter
         _ => string.Empty,
     };
 
-    /// <summary>Tray tooltip lines under the app name: "Session 42% · Week 18%", then "Updated 9:41 AM".</summary>
-    public static string TrayStatus(UsageReport report, TimeZoneInfo zone, CultureInfo culture)
+    public static string ProviderName(UsageProvider provider) => provider switch
     {
-        string values = string.Join(" · ", report.Limits.Select(l => $"{l.ShortTitle} {Percent(l.Percent)}"));
-        string updated = TimeZoneInfo.ConvertTime(report.FetchedAt, zone).DateTime.ToString("t", culture);
-        return $"{values}\nUpdated {updated}";
+        UsageProvider.Copilot => "GitHub Copilot",
+        _ => "Claude",
+    };
+
+    /// <summary>
+    /// Tray tooltip lines under the app name: "Session 42% · Week 18%", then "Updated 9:41 AM".
+    /// With more than one provider each line starts with its name: "Claude Session 42% · Week 18%".
+    /// </summary>
+    public static string TrayStatus(IReadOnlyList<UsageReport> reports, TimeZoneInfo zone, CultureInfo culture)
+    {
+        IEnumerable<string> lines = reports.Select(report =>
+        {
+            string values = string.Join(" · ", report.Limits.Select(l => $"{l.ShortTitle} {Percent(l.Percent)}"));
+            return reports.Count > 1 ? $"{report.Provider} {values}" : values;
+        });
+        DateTimeOffset latest = reports.Max(r => r.FetchedAt);
+        string updated = TimeZoneInfo.ConvertTime(latest, zone).DateTime.ToString("t", culture);
+        return $"{string.Join('\n', lines)}\nUpdated {updated}";
     }
 }

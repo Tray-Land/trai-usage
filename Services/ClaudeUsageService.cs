@@ -17,12 +17,18 @@ internal enum UsageProblem
 
     /// <summary>The service answered with something the parser doesn't understand.</summary>
     UnreadableResponse,
+
+    /// <summary>The plan has no limits to track (every Copilot quota is unlimited).</summary>
+    NoLimits,
 }
 
-internal sealed class UsageUnavailableException(UsageProblem problem, string message, Exception? inner = null)
+/// <param name="provider">Which service had the problem; null when none is signed in at all.</param>
+internal sealed class UsageUnavailableException(UsageProblem problem, string message, UsageProvider? provider = null, Exception? inner = null)
     : Exception(message, inner)
 {
     public UsageProblem Problem { get; } = problem;
+
+    public UsageProvider? Provider { get; } = provider;
 }
 
 /// <summary>
@@ -51,10 +57,10 @@ internal static class ClaudeUsageService
     public static async Task<UsageReport> FetchAsync(CancellationToken cancellationToken)
     {
         ClaudeCredentials credentials = await ReadSignInAsync(cancellationToken)
-            ?? throw new UsageUnavailableException(UsageProblem.NotSignedIn, "Claude Code isn't signed in to a Claude account.");
+            ?? throw new UsageUnavailableException(UsageProblem.NotSignedIn, "Claude Code isn't signed in to a Claude account.", UsageProvider.Claude);
         if (credentials.IsExpired(DateTimeOffset.UtcNow))
         {
-            throw new UsageUnavailableException(UsageProblem.SignInExpired, "Claude Code's sign-in has expired.");
+            throw new UsageUnavailableException(UsageProblem.SignInExpired, "Claude Code's sign-in has expired.", UsageProvider.Claude);
         }
 
         using HttpRequestMessage request = new(HttpMethod.Get, UsageUri);
@@ -65,9 +71,9 @@ internal static class ClaudeUsageService
         switch (response.StatusCode)
         {
             case HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden:
-                throw new UsageUnavailableException(UsageProblem.SignInExpired, "Claude didn't accept Claude Code's sign-in.");
+                throw new UsageUnavailableException(UsageProblem.SignInExpired, "Claude didn't accept Claude Code's sign-in.", UsageProvider.Claude);
             case HttpStatusCode.TooManyRequests:
-                throw new UsageUnavailableException(UsageProblem.RateLimited, "Claude is limiting usage checks.");
+                throw new UsageUnavailableException(UsageProblem.RateLimited, "Claude is limiting usage checks.", UsageProvider.Claude);
         }
 
         response.EnsureSuccessStatusCode();
@@ -80,7 +86,7 @@ internal static class ClaudeUsageService
         }
         catch (FormatException ex)
         {
-            throw new UsageUnavailableException(UsageProblem.UnreadableResponse, ex.Message, ex);
+            throw new UsageUnavailableException(UsageProblem.UnreadableResponse, ex.Message, UsageProvider.Claude, ex);
         }
     }
 

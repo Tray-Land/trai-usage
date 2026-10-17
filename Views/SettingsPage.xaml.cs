@@ -47,10 +47,16 @@ public sealed partial class SettingsPage : Page
 
     private async Task LoadSignInAsync()
     {
+        bool copilot = await CopilotUsageService.IsSignedInAsync();
+        CopilotCard.Visibility = copilot ? Visibility.Visible : Visibility.Collapsed;
+        CopilotSignInText.Text = "Signed in through Copilot CLI or your editor.";
+
         string text;
+        bool claude = true;
         try
         {
             ClaudeCredentials? credentials = await ClaudeUsageService.ReadSignInAsync();
+            claude = credentials is not null;
             text = credentials switch
             {
                 null => "Claude Code isn't signed in to a Claude account.",
@@ -65,6 +71,9 @@ public sealed partial class SettingsPage : Page
         }
 
         SignInText.Text = text;
+
+        // Hide the Claude card when only Copilot is set up; with neither, keep it as the place to start.
+        ClaudeCard.Visibility = claude || !copilot ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private async Task LoadStartupStateAsync()
