@@ -6,8 +6,8 @@ namespace TraiUsage.Services;
 
 /// <summary>
 /// Typed wrapper over <see cref="ApplicationData.LocalSettings"/>. Every read falls back to a
-/// default so a missing or corrupt value never crashes the app. Not for secrets: see
-/// <see cref="Secrets"/> (build-time app keys) and <see cref="CredentialStore"/> (user tokens).
+/// default so a missing or corrupt value never crashes the app. Not for secrets: the only one this
+/// app touches is Claude Code's sign-in, which it reads in place and never copies.
 /// </summary>
 /// <remarks>
 /// LocalSettings values must be small (8 KB each) WinRT primitives. Store enums as int, and lists

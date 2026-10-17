@@ -1,27 +1,35 @@
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using TraiUsage.Services;
+using TraiUsage.Usage;
 using Windows.ApplicationModel;
-using WinUIEx;
 
 namespace TraiUsage.Views;
 
-public sealed partial class SettingsWindow : WindowEx
+/// <summary>
+/// Settings, swapped into the flyout in place of <see cref="FlyoutPage"/>. There are only a
+/// couple, so they don't earn a window of their own.
+/// </summary>
+public sealed partial class SettingsPage : Page
 {
+    private readonly Action _goBack;
     private bool _loading = true;
 
-    public SettingsWindow()
+    public SettingsPage(Action goBack)
     {
+        _goBack = goBack;
         InitializeComponent();
-        Title = $"{App.DisplayName} Settings";
-        AppTitleBar.Title = Title;
-        ExtendsContentIntoTitleBar = true;
-        SetTitleBar(AppTitleBar);
-        AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));
-        WindowPlacementService.CenterOnPrimary(this, 480, 560);
-
         VersionText.Text = $"{App.DisplayName} {GetVersion()}";
-        _ = LoadStartupStateAsync();
+        SignInPathText.Text = ClaudeCredentials.DefaultPath();
         _loading = false;
+    }
+
+    /// <summary>Re-reads state that may have changed elsewhere (Windows Settings, Claude Code).</summary>
+    public void OnShown()
+    {
+        _ = LoadStartupStateAsync();
+        _ = LoadSignInAsync();
+        BackButton.Focus(FocusState.Programmatic);
     }
 
     private static string GetVersion()
@@ -35,6 +43,28 @@ public sealed partial class SettingsWindow : WindowEx
         {
             return "(unpackaged)";
         }
+    }
+
+    private async Task LoadSignInAsync()
+    {
+        string text;
+        try
+        {
+            ClaudeCredentials? credentials = await ClaudeUsageService.ReadSignInAsync();
+            text = credentials switch
+            {
+                null => "Claude Code isn't signed in to a Claude account.",
+                { } signIn when signIn.IsExpired(DateTimeOffset.UtcNow) =>"Signed in through Claude Code. The sign-in has expired; use Claude Code once to renew it.",
+                { PlanName: { } plan } => $"Signed in through Claude Code, {plan} plan.",
+                _ => "Signed in through Claude Code.",
+            };
+        }
+        catch (Exception)
+        {
+            text = "Claude Code's sign-in can't be read right now.";
+        }
+
+        SignInText.Text = text;
     }
 
     private async Task LoadStartupStateAsync()
@@ -69,4 +99,6 @@ public sealed partial class SettingsWindow : WindowEx
 
         ShowStartupState(await StartupService.SetEnabledAsync(StartupToggle.IsOn));
     }
+
+    private void BackButton_Click(object sender, RoutedEventArgs e) => _goBack();
 }

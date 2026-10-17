@@ -27,7 +27,6 @@ public partial class App : Application
     private RegisteredWaitHandle? _showWait;
     private TrayIcon? _trayIcon;
     private TrayFlyoutWindow? _flyout;
-    private SettingsWindow? _settings;
     private DispatcherQueue? _dispatcher;
     private bool _isExiting;
 
@@ -102,24 +101,26 @@ public partial class App : Application
     {
         TrayFlyoutWindow flyout = EnsureFlyout();
         flyout.HidePopup();
+        flyout.ShowMainPage();
         flyout.ShowPopup();
     }
 
+    /// <summary>Shows the flyout on its settings page.</summary>
     public void ShowSettings()
     {
-        _flyout?.HidePopup();
-        if (_settings is null)
+        TrayFlyoutWindow flyout = EnsureFlyout();
+        flyout.ShowSettingsPage();
+        if (!flyout.IsPopupVisible)
         {
-            _settings = new SettingsWindow();
-            _settings.Closed += (_, _) =>
-            {
-                _settings = null;
-                ReleaseIdleResourcesIfNoWindows();
-            };
+            flyout.ShowPopup();
         }
+    }
 
-        _settings.Activate();
-        _settings.BringToFront();
+    /// <summary>Opens Claude's own usage page in the browser.</summary>
+    public void OpenUsagePage()
+    {
+        _flyout?.HidePopup();
+        _ = Windows.System.Launcher.LaunchUriAsync(ClaudeUsageService.UsagePageUri);
     }
 
     private void InitializeTrayIcon()
@@ -141,12 +142,15 @@ public partial class App : Application
         MenuFlyout menu = new();
         MenuFlyoutItem open = new() { Text = $"Open {DisplayName}", Icon = new FontIcon { Glyph = "" } };
         open.Click += (_, _) => ShowFlyout();
+        MenuFlyoutItem usagePage = new() { Text = "Open usage on claude.ai", Icon = new FontIcon { Glyph = "" } };
+        usagePage.Click += (_, _) => OpenUsagePage();
         MenuFlyoutItem settings = new() { Text = "Settings", Icon = new FontIcon { Glyph = "" } };
         settings.Click += (_, _) => ShowSettings();
         MenuFlyoutItem exit = new() { Text = "Exit", Icon = new FontIcon { Glyph = "" } };
         exit.Click += (_, _) => ExitApp();
 
         menu.Items.Add(open);
+        menu.Items.Add(usagePage);
         menu.Items.Add(settings);
         menu.Items.Add(new MenuFlyoutSeparator());
         menu.Items.Add(exit);
@@ -171,7 +175,7 @@ public partial class App : Application
 
     private void ReleaseIdleResourcesIfNoWindows()
     {
-        if (_flyout is null && _settings is null && !_isExiting)
+        if (_flyout is null && !_isExiting)
         {
             MemoryService.ReleaseIdle();
         }
@@ -181,7 +185,6 @@ public partial class App : Application
     {
         _isExiting = true;
         _flyout?.CloseWindow();
-        _settings?.Close();
 
         if (_trayIcon is not null)
         {

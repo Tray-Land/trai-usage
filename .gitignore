@@ -52,6 +52,3 @@ _ReSharper*/
 # Generated files
 Generated\ Files/
 *_wpftmp.csproj
-
-# The app's own API keys; copy OAuth.resw.sample to create it.
-OAuth.resw

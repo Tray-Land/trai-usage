@@ -24,8 +24,12 @@ namespace TraiUsage.Views;
 /// </summary>
 public sealed partial class TrayFlyoutWindow : WindowEx
 {
+    // The height fits the usage cards, so two limits don't leave half the flyout empty. The
+    // minimum leaves room for the loading and sign-in states, and for the settings page.
     private const int PopupWidth = 360;
-    private const int PopupHeight = 480;
+    private const int DefaultPopupHeight = 480;
+    private const int MinPopupHeight = 340;
+    private const int MaxPopupHeight = 600;
 
     private const int WS_EX_TOOLWINDOW = 0x00000080;
     private const int WS_EX_LAYERED = 0x00080000;
@@ -47,6 +51,7 @@ public sealed partial class TrayFlyoutWindow : WindowEx
 
     private readonly HWND _hwnd;
     private readonly FlyoutPage _page = new();
+    private SettingsPage? _settingsPage;
     private readonly ShellBackdrop _backdrop = new();
     private readonly UISettings _uiSettings = new();
     private readonly DispatcherQueueTimer _hideTimer;
@@ -54,6 +59,7 @@ public sealed partial class TrayFlyoutWindow : WindowEx
     private readonly DispatcherQueueTimer _animationTimer;
     private readonly Stopwatch _animationClock = new();
 
+    private int _popupHeight = DefaultPopupHeight;
     private bool _isShowing;
     private bool _isPopupVisible;
     private bool _allowClose;
@@ -79,6 +85,10 @@ public sealed partial class TrayFlyoutWindow : WindowEx
         InitializeComponent();
         _hwnd = (HWND)WindowNative.GetWindowHandle(this);
         PageHost.Content = _page;
+        _page.ContentChanged += (_, _) => FitToContent();
+        _page.Loaded += (_, _) => FitToContent();
+        // handledEventsToo: buttons swallow pointer presses, but the mouse back button should still go back.
+        PopupRoot.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(PopupRoot_PointerPressed), true);
 
         SystemBackdrop = _backdrop;
         ApplyShellTheme();
@@ -106,6 +116,10 @@ public sealed partial class TrayFlyoutWindow : WindowEx
         _animationTimer.Tick += AnimationTimer_Tick;
     }
 
+    public bool IsPopupVisible => _isPopupVisible;
+
+    public bool IsShowingSettings => PageHost.Content is SettingsPage;
+
     /// <summary>Shows the popup, or hides it if already visible (tray-icon click behavior).</summary>
     public void Toggle()
     {
@@ -120,13 +134,41 @@ public sealed partial class TrayFlyoutWindow : WindowEx
             return;
         }
 
+        // A tray click always lands on the usage, even if settings were open last time.
+        ShowMainPage();
         ShowPopup();
+    }
+
+    public void ShowSettingsPage()
+    {
+        _settingsPage ??= new SettingsPage(ShowMainPage);
+        _settingsPage.OnShown();
+        _page.OnHidden(); // No polling behind the settings page.
+        PageHost.Content = _settingsPage;
+    }
+
+    public void ShowMainPage()
+    {
+        if (!ReferenceEquals(PageHost.Content, _page))
+        {
+            PageHost.Content = _page;
+        }
+
+        if (_isPopupVisible)
+        {
+            _page.OnShown(); // Refreshes if stale.
+        }
     }
 
     public void ShowPopup()
     {
         // Position before showing so the window never flashes at a stale location.
-        WindowPlacementService.PositionNearTray(this, PopupWidth, PopupHeight);
+        if (!IsShowingSettings)
+        {
+            _popupHeight = MeasurePopupHeight();
+        }
+
+        WindowPlacementService.PositionNearTray(this, PopupWidth, _popupHeight);
         _baseX = AppWindow.Position.X;
         _baseY = AppWindow.Position.Y;
 
@@ -143,7 +185,10 @@ public sealed partial class TrayFlyoutWindow : WindowEx
         Activate();
         PInvoke.SetForegroundWindow(_hwnd);
 
-        _page.OnShown();
+        if (!IsShowingSettings)
+        {
+            _page.OnShown();
+        }
     }
 
     public void HidePopup()
@@ -182,6 +227,8 @@ public sealed partial class TrayFlyoutWindow : WindowEx
         _animationTimer.Stop();
         _page.OnHidden();
         _page.Dispose();
+        _settingsPage = null;
+        PageHost.Content = null;
 
         _uiSettings.ColorValuesChanged -= OnColorValuesChanged;
         Activated -= OnWindowActivated;
@@ -189,6 +236,44 @@ public sealed partial class TrayFlyoutWindow : WindowEx
 
         _allowClose = true;
         Close();
+    }
+
+    private int MeasurePopupHeight()
+    {
+        // The window size includes its invisible resize frame, so the content gets a little less
+        // than PopupWidth and needs the frame added back to its height.
+        uint dpi = PInvoke.GetDpiForWindow(_hwnd);
+        double scale = (dpi == 0 ? 96 : dpi) / 96.0;
+        double frameWidth = (AppWindow.Size.Width - AppWindow.ClientSize.Width) / scale;
+        double frameHeight = (AppWindow.Size.Height - AppWindow.ClientSize.Height) / scale;
+
+        // With unlimited height the page's star row sizes to its content.
+        _page.Measure(new Windows.Foundation.Size(PopupWidth - frameWidth, double.PositiveInfinity));
+        double desired = _page.DesiredSize.Height;
+        return desired > 0
+            ? Math.Clamp((int)Math.Ceiling(desired + frameHeight), MinPopupHeight, MaxPopupHeight)
+            : _popupHeight;
+    }
+
+    /// <summary>Grows or shrinks the open flyout when cards or a warning come and go, keeping it against the taskbar.</summary>
+    private void FitToContent()
+    {
+        if (!_isPopupVisible || IsShowingSettings)
+        {
+            return;
+        }
+
+        int height = MeasurePopupHeight();
+        if (height == _popupHeight)
+        {
+            return;
+        }
+
+        _popupHeight = height;
+        WindowPlacementService.PositionNearTray(this, PopupWidth, _popupHeight);
+        _baseX = AppWindow.Position.X;
+        _baseY = AppWindow.Position.Y;
+        ApplyFrame(_currentOffset, _currentOpacity);
     }
 
     private void CloseIfStillHidden()
@@ -360,9 +445,35 @@ public sealed partial class TrayFlyoutWindow : WindowEx
         return className.SequenceEqual("Xaml_WindowedPopupClass") || className.SequenceEqual("#32768");
     }
 
+    // Escape goes back from settings first, and hides second.
     private void Escape_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         args.Handled = true;
-        HidePopup();
+        if (IsShowingSettings)
+        {
+            ShowMainPage();
+        }
+        else
+        {
+            HidePopup();
+        }
+    }
+
+    private void Back_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        if (IsShowingSettings)
+        {
+            args.Handled = true;
+            ShowMainPage();
+        }
+    }
+
+    private void PopupRoot_PointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        if (IsShowingSettings && e.GetCurrentPoint(PopupRoot).Properties.IsXButton1Pressed)
+        {
+            e.Handled = true;
+            ShowMainPage();
+        }
     }
 }

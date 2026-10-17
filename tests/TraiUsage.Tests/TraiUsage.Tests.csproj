@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>TraiUsage.Tests</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" Version="4.4.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+
+  <!--
+    The app targets WinUI, which a plain test host can't load. Link its Usage folder instead:
+    everything in it is deliberately free of WinRT and Windows APIs.
+  -->
+  <ItemGroup>
+    <Compile Include="..\..\Usage\*.cs" LinkBase="Usage" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Same globalization mode as the app, so time formats match what the flyout shows. -->
+    <RuntimeHostConfigurationOption Include="System.Globalization.UseNls" Value="true" />
+  </ItemGroup>
+</Project>
