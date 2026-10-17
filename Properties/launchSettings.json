@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "TraiUsage (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "TraiUsage (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
