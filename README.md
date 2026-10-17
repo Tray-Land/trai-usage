@@ -31,7 +31,7 @@ The cards are the current session, the current week across all models, and any p
 - **Settings** (the gear): Start with Windows, and which Claude account it's reading. Escape or Alt+Left goes back.
 - **claude.ai** in the footer opens Claude's own usage page.
 
-The tray icon switches between a white and a black glyph to match the taskbar's light or dark theme.
+Before the first usage report arrives, the tray icon is the app glyph, switching between white and black to match the taskbar's light or dark theme. Once connected, it becomes two vertical bars: session usage on the left and weekly usage on the right, filling from the bottom. They use the flyout's colors (accent, amber when the pace is high, red when the limit runs out early) and follow the taskbar theme. The bars update whenever the flyout refreshes; nothing is fetched while it's hidden.
 
 ## Install
 

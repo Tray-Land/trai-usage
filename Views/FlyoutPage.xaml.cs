@@ -71,6 +71,7 @@ public sealed partial class FlyoutPage : Page, IDisposable
             UsageReport report = await ClaudeUsageService.FetchAsync(cancellationToken);
             _problem = null;
             Render();
+            App.Current.SetTrayUsage(report);
             App.Current.SetTrayStatus(UsageFormatter.TrayStatus(report, TimeZoneInfo.Local, CultureInfo.CurrentCulture));
         }
         finally

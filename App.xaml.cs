@@ -1,8 +1,12 @@
+using Microsoft.UI;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using TraiUsage.Services;
+using TraiUsage.Usage;
 using TraiUsage.Views;
+using Windows.Win32;
+using Windows.Win32.UI.WindowsAndMessaging;
 using WinUIEx;
 
 namespace TraiUsage;
@@ -29,6 +33,8 @@ public partial class App : Application
     private TrayFlyoutWindow? _flyout;
     private DispatcherQueue? _dispatcher;
     private bool _isExiting;
+    private UsageReport? _usageReport;
+    private HICON _usageIcon;
 
     public App()
     {
@@ -97,6 +103,89 @@ public partial class App : Application
         _trayIcon.Tooltip = tooltip.Length > MaxTooltipLength ? tooltip[..MaxTooltipLength] : tooltip;
     }
 
+    /// <summary>
+    /// Draws the session and weekly bars as the tray icon. This only redraws the report the
+    /// flyout already fetched, so it costs no network while the flyout is hidden.
+    /// </summary>
+    internal void SetTrayUsage(UsageReport report)
+    {
+        _usageReport = report;
+        DrawUsageIcon();
+    }
+
+    private void DrawUsageIcon()
+    {
+        if (_trayIcon is null || _usageReport is not { } report)
+        {
+            return;
+        }
+
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        bool light = SystemThemeService.IsLight;
+        TrayBar BarFor(UsageLimitKind kind)
+        {
+            UsageLimit? limit = report.Limits.FirstOrDefault(l => l.Kind == kind)?.AsOf(now);
+            if (limit is null)
+            {
+                return new TrayBar(0, 0);
+            }
+
+            return new TrayBar(limit.Percent / 100, SeverityColor(UsagePace.For(limit, now).Severity, light));
+        }
+
+        int size = PInvoke.GetSystemMetricsForDpi(SYSTEM_METRICS_INDEX.SM_CXSMICON, PInvoke.GetDpiForSystem());
+        byte[] image = TrayBarsIcon.Create(
+            size, BarFor(UsageLimitKind.Session), BarFor(UsageLimitKind.Weekly), light ? 0x40000000u : 0x50FFFFFFu);
+
+        HICON icon;
+        nint handle;
+        unsafe
+        {
+            fixed (byte* bits = image)
+            {
+                icon = PInvoke.CreateIconFromResourceEx(
+                    bits, (uint)image.Length, true, 0x00030000, size, size, IMAGE_FLAGS.LR_DEFAULTCOLOR);
+            }
+
+            handle = (nint)icon.Value;
+        }
+
+        if (handle == 0)
+        {
+            return;
+        }
+
+        // The shell copies the image when the icon is set, so the previous handle can go afterwards.
+        _trayIcon.SetIcon(Win32Interop.GetIconIdFromIcon(handle));
+        ReleaseUsageIcon();
+        _usageIcon = icon;
+    }
+
+    private void ReleaseUsageIcon()
+    {
+        if (!_usageIcon.IsNull)
+        {
+            PInvoke.DestroyIcon(_usageIcon);
+            _usageIcon = default;
+        }
+    }
+
+    // The same colors as the flyout's bars (accent, caution, critical), picked for the taskbar's theme.
+    private static uint SeverityColor(UsageSeverity severity, bool light)
+    {
+        switch (severity)
+        {
+            case UsageSeverity.Caution:
+                return light ? 0xFF9D5D00 : 0xFFFCE100;
+            case UsageSeverity.Critical:
+                return light ? 0xFFC42B1C : 0xFFFF99A4;
+            default:
+                Windows.UI.Color accent = new Windows.UI.ViewManagement.UISettings().GetColorValue(
+                    light ? Windows.UI.ViewManagement.UIColorType.AccentDark1 : Windows.UI.ViewManagement.UIColorType.AccentLight2);
+                return 0xFF000000u | ((uint)accent.R << 16) | ((uint)accent.G << 8) | accent.B;
+        }
+    }
+
     public void ShowFlyout()
     {
         TrayFlyoutWindow flyout = EnsureFlyout();
@@ -130,7 +219,17 @@ public partial class App : Application
         _trayIcon.ContextMenu += TrayIcon_ContextMenu;
         _trayIcon.IsVisible = true;
         WindowPlacementService.SetTrayIcon(_trayIcon);
-        SystemThemeService.Changed += (_, _) => _dispatcher?.TryEnqueue(() => _trayIcon?.SetIcon(TrayIconPath));
+        SystemThemeService.Changed += (_, _) => _dispatcher?.TryEnqueue(() =>
+        {
+            if (_usageReport is null)
+            {
+                _trayIcon?.SetIcon(TrayIconPath);
+            }
+            else
+            {
+                DrawUsageIcon();
+            }
+        });
     }
 
     // A white glyph disappears on a light taskbar, which follows the Windows theme, not the app theme.
@@ -192,6 +291,8 @@ public partial class App : Application
             _trayIcon.Dispose();
             _trayIcon = null;
         }
+
+        ReleaseUsageIcon();
 
         _showWait?.Unregister(null);
         _showEvent?.Dispose();
