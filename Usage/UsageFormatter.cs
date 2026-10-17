@@ -76,7 +76,7 @@ internal static class UsageFormatter
     public static string Pace(UsagePace pace) => pace.State switch
     {
         PaceState.OnTrack when pace.ProjectedPercent is { } projected => $"On pace for {Percent(projected)}",
-        PaceState.RunsOut when pace.RunsOutIn is { } runsOutIn => $"Runs out in {Duration(runsOutIn)}",
+        PaceState.RunsOut when pace.RunsOutIn is { } runsOutIn => $"est. limit in {Duration(runsOutIn)}",
         PaceState.LimitReached => "Limit reached",
         _ => string.Empty,
     };

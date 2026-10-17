@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net.Http;
+using Humanizer;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -22,8 +23,12 @@ public sealed partial class FlyoutPage : Page, IDisposable
     // Countdowns and time bars move between refreshes, so redraw from the last report meanwhile.
     private static readonly TimeSpan ClockInterval = TimeSpan.FromSeconds(30);
 
+    // The "Refreshed 2 minutes ago" footer only changes by the minute, so a 10-second tick keeps it current.
+    private static readonly TimeSpan RefreshedTextInterval = TimeSpan.FromSeconds(10);
+
     private readonly ForegroundPoller _poller;
     private readonly DispatcherQueueTimer _clock;
+    private readonly DispatcherQueueTimer _refreshedClock;
     private (string Title, string Message, string Glyph)? _problem;
 
     public FlyoutPage()
@@ -37,6 +42,11 @@ public sealed partial class FlyoutPage : Page, IDisposable
         _clock.IsRepeating = true;
         _clock.Tick += (_, _) => Render();
 
+        _refreshedClock = DispatcherQueue.CreateTimer();
+        _refreshedClock.Interval = RefreshedTextInterval;
+        _refreshedClock.IsRepeating = true;
+        _refreshedClock.Tick += (_, _) => RenderRefreshedText();
+
         Render();
     }
 
@@ -45,13 +55,15 @@ public sealed partial class FlyoutPage : Page, IDisposable
     {
         Render();
         _clock.Start();
+        _refreshedClock.Start();
         _poller.Start();
     }
 
-    /// <summary>The flyout hid: stop polling and the clock, and abandon any request in flight.</summary>
+    /// <summary>The flyout hid: stop polling and the clocks, and abandon any request in flight.</summary>
     public void OnHidden()
     {
         _clock.Stop();
+        _refreshedClock.Stop();
         _poller.Stop();
     }
 
@@ -131,8 +143,12 @@ public sealed partial class FlyoutPage : Page, IDisposable
 
         PlanText.Text = report.Plan ?? string.Empty;
         PlanBadge.Visibility = report.Plan is null ? Visibility.Collapsed : Visibility.Visible;
-        UpdatedText.Text = $"Updated {report.FetchedAt.ToLocalTime():t}";
+        RenderRefreshedText();
     }
+
+    private void RenderRefreshedText() => UpdatedText.Text = ClaudeUsageService.LastReport is { } report
+        ? $"Refreshed {report.FetchedAt.Humanize()}"
+        : string.Empty;
 
     private void ShowError(Exception ex)
     {

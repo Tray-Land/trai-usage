@@ -16,11 +16,11 @@ Each limit gets a card with two bars:
 When the Used bar is longer than the Time bar, you're using the limit faster than it renews, and at that rate it runs out before it resets. The card does that math for you:
 
 - **"On pace for 40%"**: at the rate so far, you'll be around 40% when the window resets.
-- **"Runs out in 25 min"** (amber): at the rate so far, you'll hit the limit 25 minutes from now, before the reset.
+- **"est. limit in 25 min"** (amber): at the rate so far, you'll hit the limit 25 minutes from now, before the reset.
 - **"Limit reached"** (red): the limit is used up until the reset time shown.
 - Usage at 80% or more is amber even when it's on pace.
 
-The cards are the current session, the current week across all models, and any per-model weekly limit your plan has (for example "Current week · Sonnet"). Each card also shows when the window resets ("Resets 1:10 PM", "Resets Thu 10:00 AM") and how long that is from now. Countdowns tick while the flyout is open.
+The cards are the current session, the current week across all models, and any per-model weekly limit your plan has (for example "Current week · Sonnet"). Each card also shows when the window resets ("Resets 1:10 PM", "Resets Thu 10:00 AM") and how long that is from now. Countdowns tick while the flyout is open, and the footer says how long ago the numbers were refreshed ("Refreshed 2 minutes ago").
 
 ## Using it
 

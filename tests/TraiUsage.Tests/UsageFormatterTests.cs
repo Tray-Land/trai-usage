@@ -57,7 +57,7 @@ public sealed class UsageFormatterTests
 
         Assert.AreEqual("2 hr 30 min left", UsageFormatter.TimeLeft(onTrack));
         Assert.AreEqual("On pace for 40%", UsageFormatter.Pace(onTrack));
-        Assert.AreEqual("Runs out in 1 hr", UsageFormatter.Pace(runsOut));
+        Assert.AreEqual("est. limit in 1 hr", UsageFormatter.Pace(runsOut));
         Assert.AreEqual("Resets in 1 hr 30 min", UsageFormatter.TimeLeft(full));
         Assert.AreEqual("Limit reached", UsageFormatter.Pace(full));
         Assert.AreEqual("Starts with your next message", UsageFormatter.TimeLeft(idle));
