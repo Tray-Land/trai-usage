@@ -30,10 +30,10 @@ The Claude cards are the current session, the current week across all models, an
 - **Right-click** for Open, a link to each signed-in service's usage page, Settings, and Exit.
 - **Hover** the icon for the last numbers it fetched, for example "Session 88% · Week 64%" and when they were updated. With both services, each line starts with its name.
 - **Refresh** (the circular arrow) fetches now. Otherwise the flyout refreshes when it opens (if its data is over a minute old) and every 2 minutes while it stays open.
-- **Settings** (the gear): Start with Windows, and which Claude account it's reading. Escape or Alt+Left goes back.
+- **Settings** (the gear): Start with Windows, which limits the tray icon draws as bars (checkboxes), and which Claude account it's reading. Escape or Alt+Left goes back.
 - **claude.ai** and **github.com** in the footer open each service's own usage page (only the ones you use are shown).
 
-Before the first usage report arrives, the tray icon is the app glyph, switching between white and black to match the taskbar's light or dark theme. Once connected, it becomes two vertical bars: session usage on the left and weekly usage on the right, filling from the bottom. With only Copilot, the bars are its first two limits (usually just premium requests on the left). With both services, the bars show Claude. They use the flyout's colors (accent, amber when the pace is high, red when the limit runs out early) and follow the taskbar theme. The bars update whenever the flyout refreshes; nothing is fetched while it's hidden.
+Before the first usage report arrives, the tray icon is the app glyph, switching between white and black to match the taskbar's light or dark theme. Once connected, it becomes horizontal bars stacked top to bottom, each filling from the left: one per limit you tick in Settings: Claude's session and week, and Copilot's premium requests, chat and completions (all monthly; Copilot has no session limit). By default it draws Claude's session and week and Copilot's premium requests; untick them all to get the app glyph back. They use the flyout's colors (accent, amber when the pace is high, red when the limit runs out early) and follow the taskbar theme. The bars update whenever the flyout refreshes; nothing is fetched while it's hidden.
 
 ## Install
 

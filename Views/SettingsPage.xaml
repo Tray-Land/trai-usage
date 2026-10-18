@@ -62,6 +62,39 @@
                         Toggled="StartupToggle_Toggled" />
                 </Grid>
 
+                <Grid
+                    Padding="14,12"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                    <StackPanel>
+                        <TextBlock Text="Tray icon bars" />
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="Pick the limits to draw, one bar each."
+                            TextWrapping="Wrap" />
+                        <StackPanel x:Name="ClaudeBars" Margin="0,6,0,0">
+                            <TextBlock
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="Claude" />
+                            <CheckBox x:Name="ClaudeSessionCheck" Content="Session" Tag="claude:session" Checked="BarCheck_Changed" Unchecked="BarCheck_Changed" />
+                            <CheckBox x:Name="ClaudeWeeklyCheck" Content="Week" Tag="claude:weekly" Checked="BarCheck_Changed" Unchecked="BarCheck_Changed" />
+                        </StackPanel>
+                        <StackPanel x:Name="CopilotBars" Margin="0,6,0,0">
+                            <TextBlock
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="GitHub Copilot (monthly)" />
+                            <CheckBox x:Name="CopilotPremiumCheck" Content="Premium requests" Tag="copilot:Premium requests" Checked="BarCheck_Changed" Unchecked="BarCheck_Changed" />
+                            <CheckBox x:Name="CopilotChatCheck" Content="Chat" Tag="copilot:Chat" Checked="BarCheck_Changed" Unchecked="BarCheck_Changed" />
+                            <CheckBox x:Name="CopilotCompletionsCheck" Content="Completions" Tag="copilot:Completions" Checked="BarCheck_Changed" Unchecked="BarCheck_Changed" />
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+
                 <StackPanel
                     x:Name="ClaudeCard"
                     Padding="14,12"

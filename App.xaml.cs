@@ -33,7 +33,7 @@ public partial class App : Application
     private TrayFlyoutWindow? _flyout;
     private DispatcherQueue? _dispatcher;
     private bool _isExiting;
-    private UsageReport? _usageReport;
+    private IReadOnlyList<UsageReport> _usageReports = [];
     private HICON _usageIcon;
 
     public App()
@@ -116,19 +116,16 @@ public partial class App : Application
     /// </summary>
     internal void SetTrayUsage(IReadOnlyList<UsageReport> reports)
     {
-        // One icon can't show every provider; the first one set up (Claude, then Copilot) gets the bars.
-        _usageReport = reports.Count > 0 ? reports[0] : null;
+        _usageReports = reports;
         DrawUsageIcon();
     }
 
-    // Claude: session and week. Copilot has monthly allowances only: the first two, usually just premium requests.
-    private static (UsageLimit? Left, UsageLimit? Right) BarLimits(UsageReport report) => report.Provider == UsageProvider.Copilot
-        ? (report.Limits.ElementAtOrDefault(0), report.Limits.ElementAtOrDefault(1))
-        : (report.Limits.FirstOrDefault(l => l.Kind == UsageLimitKind.Session), report.Limits.FirstOrDefault(l => l.Kind == UsageLimitKind.Weekly));
+    /// <summary>Redraws the tray icon after a tray setting changed.</summary>
+    internal void RefreshTrayIcon() => DrawUsageIcon();
 
     private void DrawUsageIcon()
     {
-        if (_trayIcon is null || _usageReport is not { } report)
+        if (_trayIcon is null || _usageReports.Count == 0)
         {
             return;
         }
@@ -145,10 +142,15 @@ public partial class App : Application
             return new TrayBar(limit.Percent / 100, SeverityColor(UsagePace.For(limit, now).Severity, light));
         }
 
-        (UsageLimit? left, UsageLimit? right) = BarLimits(report);
+        TrayBar[] bars = [.. TrayBarSelection.Select(_usageReports, SettingsService.TrayBars).Select(BarFor)];
+        if (bars.Length == 0)
+        {
+            _trayIcon.SetIcon(TrayIconPath); // Nothing chosen (or nothing to show): the app glyph.
+            return;
+        }
+
         int size = PInvoke.GetSystemMetricsForDpi(SYSTEM_METRICS_INDEX.SM_CXSMICON, PInvoke.GetDpiForSystem());
-        byte[] image = TrayBarsIcon.Create(
-            size, BarFor(left), BarFor(right), light ? 0x40000000u : 0x50FFFFFFu);
+        byte[] image = TrayBarsIcon.Create(size, bars, light ? 0x40000000u : 0x50FFFFFFu);
 
         HICON icon;
         nint handle;
@@ -234,7 +236,7 @@ public partial class App : Application
         WindowPlacementService.SetTrayIcon(_trayIcon);
         SystemThemeService.Changed += (_, _) => _dispatcher?.TryEnqueue(() =>
         {
-            if (_usageReport is null)
+            if (_usageReports.Count == 0)
             {
                 _trayIcon?.SetIcon(TrayIconPath);
             }

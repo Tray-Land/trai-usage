@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
+using TraiUsage.Usage;
 using Windows.Storage;
 
 namespace TraiUsage.Services;
@@ -22,6 +23,13 @@ internal static class SettingsService
     {
         get => Get(nameof(HasLaunchedBefore), false);
         set => Set(nameof(HasLaunchedBefore), value);
+    }
+
+    /// <summary>The limits the tray icon draws bars for, as <see cref="TrayBarSelection"/> keys.</summary>
+    public static IReadOnlyList<string> TrayBars
+    {
+        get => TrayBarSelection.Parse(Get<string?>(nameof(TrayBars), null));
+        set => Set(nameof(TrayBars), TrayBarSelection.Format(value));
     }
 
     public static T? GetJson<T>(string key, JsonTypeInfo<T> typeInfo)

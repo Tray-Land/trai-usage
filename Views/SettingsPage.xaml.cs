@@ -21,7 +21,27 @@ public sealed partial class SettingsPage : Page
         InitializeComponent();
         VersionText.Text = $"{App.DisplayName} {GetVersion()}";
         SignInPathText.Text = ClaudeCredentials.DefaultPath();
+        IReadOnlyList<string> chosen = SettingsService.TrayBars;
+        foreach (CheckBox box in BarChecks())
+        {
+            box.IsChecked = chosen.Contains((string)box.Tag);
+        }
+
         _loading = false;
+    }
+
+    private CheckBox[] BarChecks() =>
+        [ClaudeSessionCheck, ClaudeWeeklyCheck, CopilotPremiumCheck, CopilotChatCheck, CopilotCompletionsCheck];
+
+    private void BarCheck_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loading)
+        {
+            return;
+        }
+
+        SettingsService.TrayBars = [.. BarChecks().Where(b => b.IsChecked == true).Select(b => (string)b.Tag)];
+        App.Current.RefreshTrayIcon();
     }
 
     /// <summary>Re-reads state that may have changed elsewhere (Windows Settings, Claude Code).</summary>
@@ -71,6 +91,8 @@ public sealed partial class SettingsPage : Page
         }
 
         SignInText.Text = text;
+        ClaudeBars.Visibility = claude ? Visibility.Visible : Visibility.Collapsed;
+        CopilotBars.Visibility = copilot ? Visibility.Visible : Visibility.Collapsed;
 
         // Hide the Claude card when only Copilot is set up; with neither, keep it as the place to start.
         ClaudeCard.Visibility = claude || !copilot ? Visibility.Visible : Visibility.Collapsed;
