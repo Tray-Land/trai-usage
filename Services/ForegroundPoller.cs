@@ -3,7 +3,7 @@ using Microsoft.UI.Dispatching;
 namespace TraiUsage.Services;
 
 /// <summary>
-/// Runs a refresh on the UI thread on an interval while something is on screen, and not at all
+/// Runs a refresh on the UI thread on an interval while started, and not at all
 /// otherwise. One refresh at a time, exponential backoff on failure, an immediate re-check when
 /// the network comes back, and in-flight work is cancelled on <see cref="Stop"/>.
 /// </summary>
@@ -37,6 +37,8 @@ internal sealed class ForegroundPoller
     public event EventHandler<Exception>? Failed;
 
     public bool IsRunning { get; private set; }
+
+    public DateTimeOffset LastSuccess => _lastSuccess;
 
     public void Start()
     {

@@ -48,6 +48,9 @@ public partial class App : Application
 
     public static new App Current => (App)Application.Current;
 
+    /// <summary>Polls usage for the life of the app; null until launch completes.</summary>
+    internal UsageRefresher Usage { get; private set; } = null!;
+
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         _singleInstanceMutex = new Mutex(true, MutexName, out bool createdNew);
@@ -79,8 +82,10 @@ public partial class App : Application
 
         InitializeTrayIcon();
 
-        // Local files only, no network: lets the tray menu list just the services that are set up.
-        _ = UsageProviders.DetectAsync().ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
+        // The tray icon shows the numbers, so they refresh in the background, flyout open or not.
+        // Detection also lets the tray menu list just the services that are set up.
+        Usage = new UsageRefresher(_dispatcher);
+        Usage.Start();
 
         // First run: show where the app lives instead of launching into silence.
         if (!SettingsService.HasLaunchedBefore)
@@ -107,8 +112,7 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Draws the session and weekly bars as the tray icon. This only redraws the report the
-    /// flyout already fetched, so it costs no network while the flyout is hidden.
+    /// Draws the session and weekly bars as the tray icon from the latest fetched report.
     /// </summary>
     internal void SetTrayUsage(IReadOnlyList<UsageReport> reports)
     {

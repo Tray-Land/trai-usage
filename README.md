@@ -61,7 +61,7 @@ Only github.com accounts are read. A GitHub token from the `gh` CLI isn't used.
 
 - **What it reads:** Claude Code's sign-in file, `%USERPROFILE%\.claude\.credentials.json` (or `%CLAUDE_CONFIG_DIR%\.credentials.json` when that variable is set). It reads the file fresh for each request and keeps nothing from it but the plan name.
 - **What it never does:** write to that file, renew the token, copy it anywhere, or log it. Claude Code owns the sign-in. Its refresh token changes every time it's used, so renewing it from a second app could sign Claude Code out. The Copilot token is handled the same way: read for each request, sent only to `api.github.com`, never stored or changed.
-- **Network:** one HTTPS request per signed-in service: `api.anthropic.com/api/oauth/usage` (the endpoint behind Claude Code's `/usage`) and `api.github.com/copilot_internal/user` (the one Copilot's editors read). They run only while the flyout is open: when it opens, every 2 minutes while it stays open, and when you press Refresh. Nothing runs in the background while the flyout is closed. Finding out which services are signed in reads local files only.
+- **Network:** one HTTPS request per signed-in service: `api.anthropic.com/api/oauth/usage` (the endpoint behind Claude Code's `/usage`) and `api.github.com/copilot_internal/user` (the one Copilot's editors read). They run every 2 minutes (backing off when a service fails), when the flyout opens with stale data, and when you press Refresh. This includes while the flyout is closed, because the tray icon displays the numbers. Finding out which services are signed in reads local files only.
 - **Stored:** only whether the app has launched before (in its own app settings). The last usage numbers stay in memory for the tooltip and the next open.
 - **Footprint:** a minute after the flyout is dismissed, the window is closed and its memory released, so the idle app is a tray icon and little else.
 
@@ -97,7 +97,8 @@ To release, `build-msix-for-gh.ps1` builds signed x64 and ARM64 MSIX packages an
 |---|---|
 | `App.xaml.cs` | Tray icon, context menu, tooltip, single instance, and the only exit path |
 | `Views/TrayFlyoutWindow` | The flyout window: placement next to the tray, fit to content, light dismiss, animation, idle close |
-| `Views/FlyoutPage` | The usage cards, loading and error states, polling while visible |
+| `Views/FlyoutPage` | The usage cards, loading and error states |
+| `Services/UsageRefresher` | App-lifetime polling that keeps the reports and tray icon current |
 | `Views/SettingsPage` | Start with Windows and the Claude account, swapped into the flyout |
 | `Controls/UsageCard` | One limit: the Used and Time bars, reset time, countdown, and pace |
 | `Services/ClaudeUsageService.cs` | Reads Claude Code's sign-in and fetches the usage |
