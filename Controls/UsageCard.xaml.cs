@@ -30,6 +30,8 @@ public sealed partial class UsageCard : UserControl
         ResetText.Text = limit.ResetsAt is { } resetsAt
             ? $"Resets {UsageFormatter.ResetTime(resetsAt, now, TimeZoneInfo.Local, culture)}"
             : string.Empty;
+        OverageText.Text = UsageFormatter.Overage(limit.Overage);
+        OverageText.Visibility = OverageText.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
 
         UsedPercentText.Text = UsageFormatter.Percent(limit.Percent);
         TimePercentText.Text = pace.State == PaceState.Idle ? "–" : UsageFormatter.Percent(pace.ElapsedFraction * 100);
@@ -42,8 +44,9 @@ public sealed partial class UsageCard : UserControl
         VisualStateManager.GoToState(this, pace.Severity.ToString(), useTransitions: false);
 
         string paceText = PaceText.Text.Length > 0 ? $", {PaceText.Text}" : string.Empty;
+        string overageText = OverageText.Text.Length > 0 ? $", {OverageText.Text}" : string.Empty;
         AutomationProperties.SetName(this,
-            $"{limit.Title}: {UsedPercentText.Text} used, {TimeLeftText.Text}{paceText}");
+            $"{limit.Title}: {UsedPercentText.Text} used, {TimeLeftText.Text}{paceText}{overageText}");
     }
 
     private void Track_SizeChanged(object sender, SizeChangedEventArgs e) => UpdateBars();

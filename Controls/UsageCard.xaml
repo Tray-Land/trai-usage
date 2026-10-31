@@ -39,6 +39,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <!--  Title and reset time  -->
@@ -143,6 +144,15 @@
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                     Style="{StaticResource CaptionTextBlockStyle}" />
             </Grid>
+
+            <!--  Requests billed beyond the plan  -->
+            <TextBlock
+                x:Name="OverageText"
+                Grid.Row="4"
+                Grid.ColumnSpan="3"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Style="{StaticResource CaptionTextBlockStyle}"
+                Visibility="Collapsed" />
         </Grid>
     </Border>
 </UserControl>

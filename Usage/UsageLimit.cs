@@ -28,7 +28,9 @@ internal enum UsageProvider
 /// <param name="ResetsAt">When the window resets, or null when no window is running (nothing used yet).</param>
 /// <param name="Model">The model a <see cref="UsageLimitKind.WeeklyModel"/> limit applies to, or the
 /// name of a <see cref="UsageLimitKind.Monthly"/> allowance ("Premium requests").</param>
-internal sealed record UsageLimit(UsageLimitKind Kind, double Percent, DateTimeOffset? ResetsAt, string? Model = null)
+/// <param name="Overage">Requests made beyond the allowance and billed per request (Copilot's
+/// <c>overage_count</c>), or 0 when there are none.</param>
+internal sealed record UsageLimit(UsageLimitKind Kind, double Percent, DateTimeOffset? ResetsAt, string? Model = null, int Overage = 0)
 {
     public static readonly TimeSpan SessionWindow = TimeSpan.FromHours(5);
     public static readonly TimeSpan WeeklyWindow = TimeSpan.FromDays(7);

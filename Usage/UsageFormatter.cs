@@ -15,6 +15,14 @@ internal static class UsageFormatter
         return string.Create(CultureInfo.InvariantCulture, $"{Math.Round(percent, MidpointRounding.AwayFromZero):0}%");
     }
 
+    /// <summary>"1 extra request", "12 extra requests" (billed beyond the plan), or empty when there are none.</summary>
+    public static string Overage(int count) => count switch
+    {
+        <= 0 => string.Empty,
+        1 => "1 extra request",
+        _ => string.Create(CultureInfo.CurrentCulture, $"{count:N0} extra requests"),
+    };
+
     /// <summary>"2 days 5 hr", "3 hr 12 min", "12 min". Rounds up, so a countdown never reads 0 min early.</summary>
     public static string Duration(TimeSpan span)
     {

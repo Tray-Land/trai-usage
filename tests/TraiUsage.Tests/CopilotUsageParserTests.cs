@@ -51,6 +51,28 @@ public sealed class CopilotUsageParserTests
     }
 
     [TestMethod]
+    public void ReadsOverageRequests()
+    {
+        const string json = """
+            {
+              "quota_reset_date_utc": "2026-11-01T00:00:00.000Z",
+              "quota_snapshots": {
+                "premium_interactions": { "entitlement": 300, "remaining": 0, "percent_remaining": 0, "overage_count": 12, "overage_permitted": true, "unlimited": false },
+                "chat": { "entitlement": 100, "remaining": 50, "percent_remaining": 50, "overage_count": 0, "unlimited": false }
+              }
+            }
+            """;
+
+        UsageReport report = CopilotUsageParser.Parse(json, FetchedAt);
+
+        Assert.AreEqual(12, report.Limits[0].Overage);
+        Assert.AreEqual(0, report.Limits[1].Overage);
+        Assert.AreEqual("12 extra requests", UsageFormatter.Overage(12));
+        Assert.AreEqual("1 extra request", UsageFormatter.Overage(1));
+        Assert.AreEqual(string.Empty, UsageFormatter.Overage(0));
+    }
+
+    [TestMethod]
     public void ReadsTheFreePlanShape()
     {
         const string json = """

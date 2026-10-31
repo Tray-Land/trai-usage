@@ -61,9 +61,11 @@ internal static class CopilotUsageParser
             foreach ((string key, string label) in Quotas)
             {
                 double? percent = null;
+                int overage = 0;
                 if (hasSnapshots && snapshots.TryGetProperty(key, out JsonElement quota) && quota.ValueKind == JsonValueKind.Object)
                 {
                     percent = ReadSnapshotPercent(quota);
+                    overage = ReadNumber(quota, "overage_count") is > 0 and { } count ? (int)Math.Min(count, int.MaxValue) : 0;
                 }
                 else if (hasFree)
                 {
@@ -72,7 +74,7 @@ internal static class CopilotUsageParser
 
                 if (percent is { } used)
                 {
-                    limits.Add(new UsageLimit(UsageLimitKind.Monthly, Math.Max(0, used), resetsAt, label));
+                    limits.Add(new UsageLimit(UsageLimitKind.Monthly, Math.Max(0, used), resetsAt, label, overage));
                 }
             }
 
