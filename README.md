@@ -37,7 +37,7 @@ Before the first usage report arrives, the tray icon is the app glyph, switching
 
 ## Install
 
-Trai Usage isn't in the Microsoft Store yet. Build it from source (below), or install a signed MSIX from a GitHub release when one is published. A sideloaded MSIX needs its signing certificate trusted first; the release notes say how.
+Trai Usage isn't in the Microsoft Store yet. Download [TraiUsage.appinstaller](https://github.com/Tray-Land/trai-usage/releases/latest/download/TraiUsage.appinstaller) and open it. Windows installs the right version for your PC and keeps it updated. (This works once a GitHub release is published; until then, build it from source, below.)
 
 Requirements: Windows 10 1809 (build 17763) or later, x64 or ARM64.
 
@@ -89,7 +89,7 @@ Tests cover the response parsers, the sign-in parsers, the pace math, and the te
 dotnet test tests/TraiUsage.Tests
 ```
 
-To release, `build-msix-for-gh.ps1` builds signed x64 and ARM64 MSIX packages and drafts a GitHub release.
+To release, `.\build-msix-for-gh.ps1` builds a signed x64 and ARM64 `.msixbundle` plus the auto-updating `TraiUsage.appinstaller` feed and drafts a GitHub release. Publish the draft without changing its tag, then run `.\build-msix-for-gh.ps1 -VerifyPublished` to check the live feed. `-SkipRelease -NoSign -OutputRoot <dir>` checks the build without signing or publishing.
 
 ## Project layout
 
