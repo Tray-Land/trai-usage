@@ -59,6 +59,25 @@ public sealed class UsageParserTests
     }
 
     [TestMethod]
+    public void ReadsAdditionalUsageWhenEnabled()
+    {
+        const string json = """
+            {
+              "five_hour": { "utilization": 8.0, "resets_at": "2026-10-17T15:00:00+00:00" },
+              "extra_usage": { "is_enabled": true, "monthly_limit": 5000, "used_credits": 1250, "utilization": 25.0 }
+            }
+            """;
+
+        UsageReport report = UsageParser.Parse(json, FetchedAt);
+
+        Assert.HasCount(2, report.Limits);
+        UsageLimit extra = report.Limits[1];
+        Assert.AreEqual(UsageLimitKind.Monthly, extra.Kind);
+        Assert.AreEqual(25, extra.Percent);
+        Assert.AreEqual("Additional usage", extra.Title);
+    }
+
+    [TestMethod]
     public void PrefersTheLimitsArrayWhenBothShapesArePresent()
     {
         const string json = """

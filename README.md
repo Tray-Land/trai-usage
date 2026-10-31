@@ -2,7 +2,7 @@
 
 ![The Trai Usage flyout above the taskbar: the current session at 88% used with 39% of its time gone, and the current week at 64% used with 29% gone, both marked "Runs out"](docs/flyout.png)
 
-Your Claude and GitHub Copilot plan limits in the Windows notification area. Click the tray icon to see how much of the current session and week (Claude) or the month's premium requests (Copilot) you've used, and how much of each window is left.
+Your Claude and GitHub Copilot plan limits in the Windows notification area. Click the tray icon to see how much of the current session and week (Claude) or the month's premium requests (Copilot) you've used, and how much of each window is left. Claude's "Additional usage" (spend beyond the plan, when you've turned it on) and Copilot's extra billed requests show up on their cards too.
 
 Trai Usage is a WinUI 3 app that lives in the tray. It has no main window: the icon opens a small flyout next to it, styled like the shell's own flyouts. It shows the same numbers as Claude Code's `/usage` and claude.ai's usage page, for the Claude account Claude Code is signed in to, and the quota Copilot's own status menus show, for the GitHub account Copilot is signed in to.
 

@@ -51,6 +51,8 @@ internal static class UsageParser
                 throw new FormatException("The usage response has no limits.");
             }
 
+            AddExtraUsage(root, limits);
+
             List<UsageLimit> ordered = [.. limits
                 .OrderBy(l => l.Kind)
                 .ThenBy(l => l.Model, StringComparer.OrdinalIgnoreCase)];
@@ -116,6 +118,21 @@ internal static class UsageParser
             && ReadNumber(value, "utilization") is { } percent)
         {
             limits.Add(new UsageLimit(kind, Math.Max(0, percent), ReadTime(value, "resets_at"), model));
+        }
+    }
+
+    // { "extra_usage": { "is_enabled": true, "monthly_limit": 5000, "used_credits": 1250, "utilization": 25.0 } }
+    // The pay-as-you-go spend beyond the plan, as a share of the monthly spending limit. Present in
+    // both shapes, and only meaningful when the account has turned it on.
+    private static void AddExtraUsage(JsonElement root, List<UsageLimit> limits)
+    {
+        if (root.TryGetProperty("extra_usage", out JsonElement extra)
+            && extra.ValueKind == JsonValueKind.Object
+            && extra.TryGetProperty("is_enabled", out JsonElement enabled)
+            && enabled.ValueKind == JsonValueKind.True
+            && ReadNumber(extra, "utilization") is { } percent)
+        {
+            limits.Add(new UsageLimit(UsageLimitKind.Monthly, Math.Max(0, percent), ReadTime(extra, "resets_at"), "Additional usage"));
         }
     }
 
