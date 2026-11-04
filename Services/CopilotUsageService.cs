@@ -83,7 +83,7 @@ internal static class CopilotUsageService
     {
         if (await ReadFileOrNullAsync(CopilotCredentials.CliConfigPath(), cancellationToken) is { } config
             && TryParse(() => CopilotCredentials.ParseCliLogin(config)) is { } login
-            && ReadCredentialManager(CopilotCredentials.CliCredentialTarget(login.Host, login.Login)) is { } cliToken)
+            && ReadCredentialManager(CopilotCredentials.CliCredentialTargets(login.Host, login.Login)) is { } cliToken)
         {
             return cliToken;
         }
@@ -125,23 +125,29 @@ internal static class CopilotUsageService
         }
     }
 
-    private static unsafe string? ReadCredentialManager(string target)
+    private static unsafe string? ReadCredentialManager(string[] targets)
     {
-        if (!PInvoke.CredRead(target, CRED_TYPE.CRED_TYPE_GENERIC, out CREDENTIALW* credential))
+        foreach (string target in targets)
         {
-            return null;
+            if (PInvoke.CredRead(target, CRED_TYPE.CRED_TYPE_GENERIC, out CREDENTIALW* credential))
+            {
+                try
+                {
+                    if (credential->CredentialBlobSize == 0)
+                    {
+                        continue;
+                    }
+
+                    return CopilotCredentials.DecodeSecret(new ReadOnlySpan<byte>(credential->CredentialBlob, (int)credential->CredentialBlobSize));
+                }
+                finally
+                {
+                    PInvoke.CredFree(credential);
+                }
+            }
         }
 
-        try
-        {
-            return credential->CredentialBlobSize == 0
-                ? null
-                : CopilotCredentials.DecodeSecret(new ReadOnlySpan<byte>(credential->CredentialBlob, (int)credential->CredentialBlobSize));
-        }
-        finally
-        {
-            PInvoke.CredFree(credential);
-        }
+        return null;
     }
 
     private static HttpClient CreateClient()
