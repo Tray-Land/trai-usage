@@ -28,7 +28,8 @@ public sealed partial class UsageCard : UserControl
     internal void Show(
         UsageProvider provider,
         UsageLimit limit,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        (string Title, string Message)? warning = null)
     {
         limit = limit.AsOf(now);
         _cardKey = CollapsedCardSelection.KeyOf(provider, limit);
@@ -53,6 +54,14 @@ public sealed partial class UsageCard : UserControl
         PaceText.Text = UsageFormatter.Pace(pace);
         VisualStateManager.GoToState(this, pace.Severity.ToString(), useTransitions: false);
         RenderCollapsedState();
+
+        WarningButton.Visibility = warning.HasValue ? Visibility.Visible : Visibility.Collapsed;
+        if (warning is { } problem)
+        {
+            WarningTitle.Text = problem.Title;
+            WarningMessage.Text = problem.Message;
+            AutomationProperties.SetName(WarningButton, $"Show warning for {limit.Title}");
+        }
 
         string paceText = PaceText.Text.Length > 0 ? $", {PaceText.Text}" : string.Empty;
         string overageText = OverageText.Text.Length > 0 ? $", {OverageText.Text}" : string.Empty;

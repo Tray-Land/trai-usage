@@ -25,6 +25,7 @@ public sealed partial class FlyoutPage : Page, IDisposable
     private readonly DispatcherQueueTimer _clock;
     private readonly DispatcherQueueTimer _refreshedClock;
     private (string Title, string Message, string Glyph)? _problem;
+    private UsageProvider? _problemProvider;
     private bool _shown;
 
     public FlyoutPage()
@@ -79,8 +80,10 @@ public sealed partial class FlyoutPage : Page, IDisposable
     private void OnUsageChanged(object? sender, EventArgs e)
     {
         UsageRefresher usage = App.Current.Usage;
-        _problem = usage.Problem is null ? null : usage.Problem is ProviderFailure failure
-            ? DescribeProblem(failure.InnerException!, failure.Provider)
+        ProviderFailure? providerFailure = usage.Problem as ProviderFailure;
+        _problemProvider = providerFailure?.Provider;
+        _problem = usage.Problem is null ? null : providerFailure is not null
+            ? DescribeProblem(providerFailure.InnerException!, providerFailure.Provider)
             : DescribeProblem(usage.Problem, null);
 
         // Nothing on screen yet gets the big ring; anything else keeps its content and spins the small one.
@@ -108,12 +111,7 @@ public sealed partial class FlyoutPage : Page, IDisposable
         if (_problem is { } problem)
         {
             (MessageTitle.Text, MessageBody.Text, MessageIcon.Glyph) = problem;
-            (StatusBar.Title, StatusBar.Message, _) = problem;
         }
-
-        // Collapsed as well as closed, so the closed bar takes no spacing above the cards.
-        StatusBar.IsOpen = hasData && _problem is not null;
-        StatusBar.Visibility = StatusBar.IsOpen ? Visibility.Visible : Visibility.Collapsed;
 
         // Only the services that are set up get any UI at all.
         ClaudeLink.Visibility = UsageProviders.Active.Contains(UsageProvider.Claude) ? Visibility.Visible : Visibility.Collapsed;
@@ -152,13 +150,17 @@ public sealed partial class FlyoutPage : Page, IDisposable
 
             foreach (UsageLimit limit in report.Limits)
             {
+                (string, string)? warning = _problem is { } warningDetails &&
+                    (_problemProvider is null || _problemProvider == report.Provider)
+                    ? (warningDetails.Title, warningDetails.Message)
+                    : null;
                 UsageCard card = ReuseOrReplace(rows, index++, () =>
                 {
                     UsageCard created = new();
                     created.CollapsedChanged += (_, _) => ContentChanged?.Invoke(this, EventArgs.Empty);
                     return created;
                 });
-                card.Show(report.Provider, limit, now);
+                card.Show(report.Provider, limit, now, warning);
             }
         }
 

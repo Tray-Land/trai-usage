@@ -65,7 +65,8 @@ Only github.com accounts are read. A GitHub token from the `gh` CLI isn't used.
 - **Stored:** only whether the app has launched before (in its own app settings). The last usage numbers stay in memory for the tooltip and the next open.
 - **Footprint:** a minute after the flyout is dismissed, the window is closed and its memory released, so the idle app is a tray icon and little else.
 
-Neither usage endpoint is a documented public API. If Anthropic or GitHub changes one, the flyout says it can't read the response, and Trai Usage needs an update.
+Neither usage endpoint is a documented public API. If Anthropic or GitHub changes one, the flyout says it can't read the response, and Trai Usage needs an update. When older numbers remain available, a warning button appears beside that provider's usage bars and opens the failure details without moving the cards.
+
 ## Build from source
 
 Prerequisites:

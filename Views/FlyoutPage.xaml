@@ -65,16 +65,7 @@
         <!--  Content. The right margin matches the header buttons' inset, so cards sit 16 px from both edges.  -->
         <Grid Grid.Row="1" Margin="0,0,4,0">
             <ScrollViewer x:Name="CardsScroller" VerticalScrollBarVisibility="Auto">
-                <StackPanel Spacing="8">
-                    <!--  Errors keep the last good content visible underneath  -->
-                    <InfoBar
-                        x:Name="StatusBar"
-                        IsClosable="False"
-                        IsOpen="False"
-                        Severity="Warning"
-                        Visibility="Collapsed" />
-                    <StackPanel x:Name="CardsPanel" Spacing="8" />
-                </StackPanel>
+                <StackPanel x:Name="CardsPanel" Spacing="8" />
             </ScrollViewer>
 
             <ProgressRing
