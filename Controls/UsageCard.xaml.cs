@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using TraiUsage.Services;
 using TraiUsage.Usage;
 
 namespace TraiUsage.Controls;
@@ -14,15 +15,24 @@ public sealed partial class UsageCard : UserControl
 {
     private double _usedFraction;
     private double _timeFraction;
+    private string _cardKey = string.Empty;
+    private bool _isCollapsed;
 
     public UsageCard()
     {
         InitializeComponent();
     }
 
-    internal void Show(UsageLimit limit, DateTimeOffset now)
+    public event EventHandler? CollapsedChanged;
+
+    internal void Show(
+        UsageProvider provider,
+        UsageLimit limit,
+        DateTimeOffset now)
     {
         limit = limit.AsOf(now);
+        _cardKey = CollapsedCardSelection.KeyOf(provider, limit);
+        _isCollapsed = SettingsService.CollapsedUsageCards.Contains(_cardKey);
         UsagePace pace = UsagePace.For(limit, now);
         CultureInfo culture = CultureInfo.CurrentCulture;
 
@@ -42,6 +52,7 @@ public sealed partial class UsageCard : UserControl
         TimeLeftText.Text = UsageFormatter.TimeLeft(pace);
         PaceText.Text = UsageFormatter.Pace(pace);
         VisualStateManager.GoToState(this, pace.Severity.ToString(), useTransitions: false);
+        RenderCollapsedState();
 
         string paceText = PaceText.Text.Length > 0 ? $", {PaceText.Text}" : string.Empty;
         string overageText = OverageText.Text.Length > 0 ? $", {OverageText.Text}" : string.Empty;
@@ -51,10 +62,31 @@ public sealed partial class UsageCard : UserControl
 
     private void Track_SizeChanged(object sender, SizeChangedEventArgs e) => UpdateBars();
 
+    private void HeaderButton_Click(object sender, RoutedEventArgs e)
+    {
+        _isCollapsed = !_isCollapsed;
+        SettingsService.CollapsedUsageCards = CollapsedCardSelection.Set(
+            SettingsService.CollapsedUsageCards, _cardKey, _isCollapsed);
+        RenderCollapsedState();
+        CollapsedChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void RenderCollapsedState()
+    {
+        DetailsPanel.Visibility = _isCollapsed ? Visibility.Collapsed : Visibility.Visible;
+        CollapsedTrack.Visibility = _isCollapsed ? Visibility.Visible : Visibility.Collapsed;
+        CollapseIcon.Glyph = _isCollapsed ? "\uE70D" : "\uE70E";
+        AutomationProperties.SetName(
+            HeaderButton,
+            $"{(_isCollapsed ? "Expand" : "Collapse")} {TitleText.Text} usage details");
+        UpdateBars();
+    }
+
     private void UpdateBars()
     {
         UsedFill.Width = FillWidth(UsedTrack, _usedFraction);
         TimeFill.Width = FillWidth(TimeTrack, _timeFraction);
+        CollapsedFill.Width = FillWidth(CollapsedTrack, _usedFraction);
     }
 
     // Any use at all keeps at least a dot on the bar, so 1% doesn't look like nothing.

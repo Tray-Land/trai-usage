@@ -152,7 +152,13 @@ public sealed partial class FlyoutPage : Page, IDisposable
 
             foreach (UsageLimit limit in report.Limits)
             {
-                ReuseOrReplace(rows, index++, () => new UsageCard()).Show(limit, now);
+                UsageCard card = ReuseOrReplace(rows, index++, () =>
+                {
+                    UsageCard created = new();
+                    created.CollapsedChanged += (_, _) => ContentChanged?.Invoke(this, EventArgs.Empty);
+                    return created;
+                });
+                card.Show(report.Provider, limit, now);
             }
         }
 

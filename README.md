@@ -22,7 +22,7 @@ When the Used bar is longer than the Time bar, you're using the limit faster tha
 - **"Limit reached"** (red): the limit is used up until the reset time shown.
 - Usage at 80% or more is amber even when it's on pace.
 
-The Claude cards are the current session, the current week across all models, and any per-model weekly limit your plan has (for example "Current week · Sonnet"). The Copilot cards are the monthly allowances your plan limits: premium requests on paid plans, or chat and completions on the free plan. Unlimited allowances have nothing to track and are left out. A month is treated as 30 days for the Time bar. Each card also shows when the window resets ("Resets 1:10 PM", "Resets Thu 10:00 AM") and how long that is from now. Countdowns tick while the flyout is open, and the footer says how long ago the numbers were refreshed ("Refreshed 2 minutes ago").
+The Claude cards are the current session, the current week across all models, and any per-model weekly limit your plan has (for example "Current week · Sonnet"). The Copilot cards are the monthly allowances your plan limits: premium requests on paid plans, or chat and completions on the free plan. Unlimited allowances have nothing to track and are left out. A month is treated as 30 days for the Time bar. Each card can be collapsed from its header; a thin bar across the bottom keeps showing usage at a glance. Each card also shows when the window resets ("Resets 1:10 PM", "Resets Thu 10:00 AM") and how long that is from now. Countdowns tick while the flyout is open, and the footer says how long ago the numbers were refreshed ("Refreshed 2 minutes ago").
 
 ## Using it
 

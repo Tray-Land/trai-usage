@@ -39,6 +39,13 @@ internal static class SettingsService
         set => Set(nameof(ProviderOrder), Usage.ProviderOrder.Format(value));
     }
 
+    /// <summary>Usage cards the user has collapsed in the flyout.</summary>
+    public static IReadOnlyList<string> CollapsedUsageCards
+    {
+        get => CollapsedCardSelection.Parse(Get<string?>(nameof(CollapsedUsageCards), null));
+        set => Set(nameof(CollapsedUsageCards), CollapsedCardSelection.Format(value));
+    }
+
     public static T? GetJson<T>(string key, JsonTypeInfo<T> typeInfo)
     {
         if (Get<string?>(key, null) is not { } json)

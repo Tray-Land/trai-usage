@@ -116,4 +116,22 @@ public sealed class TrayBarsIconTests
             new[] { UsageProvider.Copilot, UsageProvider.Claude },
             ProviderOrder.Apply([claude, copilot], reversed).Select(report => report.Provider).ToArray());
     }
+
+    [TestMethod]
+    public void CollapsedCardsRoundTripAndToggleIndependently()
+    {
+        string session = CollapsedCardSelection.KeyOf(
+            UsageProvider.Claude, new UsageLimit(UsageLimitKind.Session, 10, null));
+        string premium = CollapsedCardSelection.KeyOf(
+            UsageProvider.Copilot, new UsageLimit(UsageLimitKind.Monthly, 20, null, "Premium requests"));
+
+        IReadOnlyList<string> collapsed = CollapsedCardSelection.Set([], session, true);
+        collapsed = CollapsedCardSelection.Set(collapsed, premium, true);
+        CollectionAssert.AreEqual(
+            collapsed.ToArray(),
+            CollapsedCardSelection.Parse(CollapsedCardSelection.Format(collapsed)).ToArray());
+
+        collapsed = CollapsedCardSelection.Set(collapsed, session, false);
+        CollectionAssert.AreEqual(new[] { premium }, collapsed.ToArray());
+    }
 }
