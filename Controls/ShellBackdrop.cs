@@ -36,6 +36,14 @@ public sealed partial class ShellBackdrop : SystemBackdrop
         _controller = null;
     }
 
+    // XAML calls this when the window's theme or activation changes, passing null once the target
+    // is gone. The base throws ArgumentException ("target") for that, which crashes the app, and
+    // this backdrop drives its own configuration through Update, so there is nothing to forward.
+    protected override void OnDefaultSystemBackdropConfigurationChanged(
+        ICompositionSupportsSystemBackdrop target, XamlRoot xamlRoot)
+    {
+    }
+
     /// <summary>Sets the light/dark look and the accent tint (null for the neutral look).</summary>
     public void Update(bool isLight, Color? accentTint)
     {
