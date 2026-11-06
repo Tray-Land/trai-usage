@@ -9,8 +9,11 @@ namespace TraiUsage.Services;
 /// </summary>
 internal static class UsageProviders
 {
+    private static IReadOnlyList<UsageProvider> _active = [];
+
     /// <summary>The providers found by the last <see cref="DetectAsync"/>, in display order.</summary>
-    public static IReadOnlyList<UsageProvider> Active { get; private set; } = [];
+    public static IReadOnlyList<UsageProvider> Active =>
+        ProviderOrder.Apply(_active, SettingsService.ProviderOrder);
 
     /// <summary>The last good report of each active provider, in display order.</summary>
     public static IReadOnlyList<UsageReport> Reports =>
@@ -29,8 +32,8 @@ internal static class UsageProviders
             found.Add(UsageProvider.Copilot);
         }
 
-        Active = found;
-        return found;
+        _active = found;
+        return Active;
     }
 
     public static Task<UsageReport> FetchAsync(UsageProvider provider, CancellationToken cancellationToken) => provider switch

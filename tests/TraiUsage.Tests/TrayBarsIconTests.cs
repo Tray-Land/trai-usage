@@ -91,4 +91,29 @@ public sealed class TrayBarsIconTests
             new[] { TrayBarSelection.ClaudeWeekly, TrayBarSelection.CopilotChat },
             TrayBarSelection.Parse(TrayBarSelection.Format([TrayBarSelection.ClaudeWeekly, TrayBarSelection.CopilotChat])).ToArray());
     }
+
+    [TestMethod]
+    public void ProviderOrderDefaultsAndRecoversFromCorruptStorage()
+    {
+        CollectionAssert.AreEqual(ProviderOrder.Defaults.ToArray(), ProviderOrder.Parse(null).ToArray());
+        CollectionAssert.AreEqual(
+            ProviderOrder.Defaults.ToArray(),
+            ProviderOrder.Parse("unknown|Claude|Claude").ToArray());
+    }
+
+    [TestMethod]
+    public void ProviderOrderMovesAndAppliesToReports()
+    {
+        IReadOnlyList<UsageProvider> reversed =
+            ProviderOrder.Move(ProviderOrder.Defaults, 0, 1);
+        UsageReport claude = Report(UsageProvider.Claude, new UsageLimit(UsageLimitKind.Session, 10, null));
+        UsageReport copilot = Report(UsageProvider.Copilot, new UsageLimit(UsageLimitKind.Monthly, 20, null));
+
+        CollectionAssert.AreEqual(
+            new[] { UsageProvider.Copilot, UsageProvider.Claude },
+            reversed.ToArray());
+        CollectionAssert.AreEqual(
+            new[] { UsageProvider.Copilot, UsageProvider.Claude },
+            ProviderOrder.Apply([claude, copilot], reversed).Select(report => report.Provider).ToArray());
+    }
 }

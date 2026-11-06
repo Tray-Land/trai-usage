@@ -32,6 +32,13 @@ internal static class SettingsService
         set => Set(nameof(TrayBars), TrayBarSelection.Format(value));
     }
 
+    /// <summary>The order providers appear in the flyout, tray icon, and tray menu.</summary>
+    public static IReadOnlyList<UsageProvider> ProviderOrder
+    {
+        get => Usage.ProviderOrder.Parse(Get<string?>(nameof(ProviderOrder), null));
+        set => Set(nameof(ProviderOrder), Usage.ProviderOrder.Format(value));
+    }
+
     public static T? GetJson<T>(string key, JsonTypeInfo<T> typeInfo)
     {
         if (Get<string?>(key, null) is not { } json)

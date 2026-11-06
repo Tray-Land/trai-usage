@@ -1,4 +1,6 @@
+using System.Globalization;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using TraiUsage.Services;
 using TraiUsage.Usage;
@@ -26,6 +28,7 @@ public sealed partial class SettingsPage : Page
         {
             box.IsChecked = chosen.Contains((string)box.Tag);
         }
+        RenderProviderOrder();
 
         _loading = false;
     }
@@ -41,6 +44,29 @@ public sealed partial class SettingsPage : Page
         }
 
         SettingsService.TrayBars = [.. BarChecks().Where(b => b.IsChecked == true).Select(b => (string)b.Tag)];
+        App.Current.RefreshTrayIcon();
+    }
+
+    private void RenderProviderOrder()
+    {
+        IReadOnlyList<UsageProvider> order = SettingsService.ProviderOrder;
+        FirstProviderText.Text = UsageFormatter.ProviderName(order[0]);
+        SecondProviderText.Text = UsageFormatter.ProviderName(order[1]);
+        AutomationProperties.SetName(FirstProviderDownButton, $"Move {FirstProviderText.Text} down");
+        AutomationProperties.SetName(SecondProviderUpButton, $"Move {SecondProviderText.Text} up");
+    }
+
+    private void MoveProviderUp_Click(object sender, RoutedEventArgs e) =>
+        MoveProvider(int.Parse((string)((Button)sender).Tag, CultureInfo.InvariantCulture), -1);
+
+    private void MoveProviderDown_Click(object sender, RoutedEventArgs e) =>
+        MoveProvider(int.Parse((string)((Button)sender).Tag, CultureInfo.InvariantCulture), 1);
+
+    private void MoveProvider(int index, int offset)
+    {
+        SettingsService.ProviderOrder =
+            ProviderOrder.Move(SettingsService.ProviderOrder, index, offset);
+        RenderProviderOrder();
         App.Current.RefreshTrayIcon();
     }
 

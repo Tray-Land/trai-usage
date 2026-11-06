@@ -96,6 +96,84 @@
                 </Grid>
 
                 <StackPanel
+                    Padding="14,12"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Spacing="6">
+                    <TextBlock Text="Provider order" />
+                    <TextBlock
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Text="Changes the order in the flyout and tray icon."
+                        TextWrapping="Wrap" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="FirstProviderText" VerticalAlignment="Center" />
+                        <Button
+                            x:Name="FirstProviderUpButton"
+                            Grid.Column="1"
+                            Width="32"
+                            Height="28"
+                            Padding="0"
+                            AutomationProperties.Name="Move first provider up"
+                            Click="MoveProviderUp_Click"
+                            IsEnabled="False"
+                            Tag="0"
+                            ToolTipService.ToolTip="Move up">
+                            <FontIcon FontSize="12" Glyph="&#xE70E;" />
+                        </Button>
+                        <Button
+                            x:Name="FirstProviderDownButton"
+                            Grid.Column="2"
+                            Width="32"
+                            Height="28"
+                            Padding="0"
+                            AutomationProperties.Name="Move first provider down"
+                            Click="MoveProviderDown_Click"
+                            Tag="0"
+                            ToolTipService.ToolTip="Move down">
+                            <FontIcon FontSize="12" Glyph="&#xE70D;" />
+                        </Button>
+                    </Grid>
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="SecondProviderText" VerticalAlignment="Center" />
+                        <Button
+                            x:Name="SecondProviderUpButton"
+                            Grid.Column="1"
+                            Width="32"
+                            Height="28"
+                            Padding="0"
+                            AutomationProperties.Name="Move second provider up"
+                            Click="MoveProviderUp_Click"
+                            Tag="1"
+                            ToolTipService.ToolTip="Move up">
+                            <FontIcon FontSize="12" Glyph="&#xE70E;" />
+                        </Button>
+                        <Button
+                            Grid.Column="2"
+                            Width="32"
+                            Height="28"
+                            Padding="0"
+                            AutomationProperties.Name="Move second provider down"
+                            IsEnabled="False"
+                            ToolTipService.ToolTip="Move down">
+                            <FontIcon FontSize="12" Glyph="&#xE70D;" />
+                        </Button>
+                    </Grid>
+                </StackPanel>
+
+                <StackPanel
                     x:Name="ClaudeCard"
                     Padding="14,12"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"

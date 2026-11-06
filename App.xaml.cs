@@ -142,7 +142,9 @@ public partial class App : Application
             return new TrayBar(limit.Percent / 100, SeverityColor(UsagePace.For(limit, now).Severity, light));
         }
 
-        TrayBar[] bars = [.. TrayBarSelection.Select(_usageReports, SettingsService.TrayBars).Select(BarFor)];
+        IReadOnlyList<UsageReport> orderedReports =
+            ProviderOrder.Apply(_usageReports, SettingsService.ProviderOrder);
+        TrayBar[] bars = [.. TrayBarSelection.Select(orderedReports, SettingsService.TrayBars).Select(BarFor)];
         if (bars.Length == 0)
         {
             _trayIcon.SetIcon(TrayIconPath); // Nothing chosen (or nothing to show): the app glyph.
@@ -266,7 +268,7 @@ public partial class App : Application
         // Only the services that are set up; before the first check, offer both.
         IReadOnlyList<UsageProvider> providers = UsageProviders.Active.Count > 0
             ? UsageProviders.Active
-            : [UsageProvider.Claude, UsageProvider.Copilot];
+            : SettingsService.ProviderOrder;
         foreach (UsageProvider provider in providers)
         {
             MenuFlyoutItem usagePage = new()
