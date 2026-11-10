@@ -37,6 +37,8 @@ Before the first usage report arrives, the tray icon is the app glyph, switching
 
 ## Install
 
+[<img src="docs/MSIX.svg" alt="Install TraiUsage (MSIX)" width="212">](https://github.com/Tray-Land/trai-usage/releases/latest/download/TraiUsage.appinstaller)
+
 Trai Usage isn't in the Microsoft Store yet. Download [TraiUsage.appinstaller](https://github.com/Tray-Land/trai-usage/releases/latest/download/TraiUsage.appinstaller) and open it. Windows installs the right version for your PC and keeps it updated. (This works once a GitHub release is published; until then, build it from source, below.)
 
 Requirements: Windows 10 1809 (build 17763) or later, x64 or ARM64.
