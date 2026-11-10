@@ -127,20 +127,17 @@ internal static class CopilotUsageService
 
     private static unsafe string? ReadCredentialManager(string target)
     {
-        if (!PInvoke.CredRead(target, CRED_TYPE.CRED_TYPE_GENERIC, out CREDENTIALW* credential))
+        if (!PInvoke.CredRead(target, CRED_TYPE.CRED_TYPE_GENERIC, out CredFreeCREDENTIALWPointerSafeHandle handle))
         {
             return null;
         }
 
-        try
+        using (handle)
         {
+            CREDENTIALW* credential = (CREDENTIALW*)handle.DangerousGetHandle();
             return credential->CredentialBlobSize == 0
                 ? null
                 : CopilotCredentials.DecodeSecret(new ReadOnlySpan<byte>(credential->CredentialBlob, (int)credential->CredentialBlobSize));
-        }
-        finally
-        {
-            PInvoke.CredFree(credential);
         }
     }
 
