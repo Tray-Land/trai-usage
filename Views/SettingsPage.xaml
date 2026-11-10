@@ -92,6 +92,14 @@
                             <CheckBox x:Name="CopilotChatCheck" Content="Chat" Tag="copilot:Chat" Checked="BarCheck_Changed" Unchecked="BarCheck_Changed" />
                             <CheckBox x:Name="CopilotCompletionsCheck" Content="Completions" Tag="copilot:Completions" Checked="BarCheck_Changed" Unchecked="BarCheck_Changed" />
                         </StackPanel>
+                        <StackPanel x:Name="CodexBars" Margin="0,6,0,0">
+                            <TextBlock
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="Codex" />
+                            <CheckBox x:Name="CodexSessionCheck" Content="Session" Tag="codex:session" Checked="BarCheck_Changed" Unchecked="BarCheck_Changed" />
+                            <CheckBox x:Name="CodexWeeklyCheck" Content="Week" Tag="codex:weekly" Checked="BarCheck_Changed" Unchecked="BarCheck_Changed" />
+                        </StackPanel>
                     </StackPanel>
                 </Grid>
 
@@ -108,69 +116,7 @@
                         Style="{StaticResource CaptionTextBlockStyle}"
                         Text="Changes the order in the flyout and tray icon."
                         TextWrapping="Wrap" />
-                    <Grid ColumnSpacing="8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="FirstProviderText" VerticalAlignment="Center" />
-                        <Button
-                            x:Name="FirstProviderUpButton"
-                            Grid.Column="1"
-                            Width="32"
-                            Height="28"
-                            Padding="0"
-                            AutomationProperties.Name="Move first provider up"
-                            Click="MoveProviderUp_Click"
-                            IsEnabled="False"
-                            Tag="0"
-                            ToolTipService.ToolTip="Move up">
-                            <FontIcon FontSize="12" Glyph="&#xE70E;" />
-                        </Button>
-                        <Button
-                            x:Name="FirstProviderDownButton"
-                            Grid.Column="2"
-                            Width="32"
-                            Height="28"
-                            Padding="0"
-                            AutomationProperties.Name="Move first provider down"
-                            Click="MoveProviderDown_Click"
-                            Tag="0"
-                            ToolTipService.ToolTip="Move down">
-                            <FontIcon FontSize="12" Glyph="&#xE70D;" />
-                        </Button>
-                    </Grid>
-                    <Grid ColumnSpacing="8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="SecondProviderText" VerticalAlignment="Center" />
-                        <Button
-                            x:Name="SecondProviderUpButton"
-                            Grid.Column="1"
-                            Width="32"
-                            Height="28"
-                            Padding="0"
-                            AutomationProperties.Name="Move second provider up"
-                            Click="MoveProviderUp_Click"
-                            Tag="1"
-                            ToolTipService.ToolTip="Move up">
-                            <FontIcon FontSize="12" Glyph="&#xE70E;" />
-                        </Button>
-                        <Button
-                            Grid.Column="2"
-                            Width="32"
-                            Height="28"
-                            Padding="0"
-                            AutomationProperties.Name="Move second provider down"
-                            IsEnabled="False"
-                            ToolTipService.ToolTip="Move down">
-                            <FontIcon FontSize="12" Glyph="&#xE70D;" />
-                        </Button>
-                    </Grid>
+                    <StackPanel x:Name="ProviderOrderPanel" Spacing="6" />
                 </StackPanel>
 
                 <StackPanel
@@ -212,11 +158,28 @@
                         TextWrapping="Wrap" />
                 </StackPanel>
 
+                <StackPanel
+                    x:Name="CodexCard"
+                    Padding="14,12"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Spacing="2"
+                    Visibility="Collapsed">
+                    <TextBlock Text="Codex account" />
+                    <TextBlock
+                        x:Name="CodexSignInText"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+
                 <TextBlock
                     Margin="2,8,2,0"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                     Style="{StaticResource CaptionTextBlockStyle}"
-                    Text="Trai Usage reads the sign-ins that Claude Code and GitHub Copilot already have, to ask Claude and GitHub for your plan's limits, only while this flyout is open. It shows whichever you use, and never changes, renews, or copies a sign-in."
+                    Text="Trai Usage reads the sign-ins that Claude Code, GitHub Copilot and Codex already have, to ask Claude, GitHub and ChatGPT for your plan's limits, only while this flyout is open. It shows whichever you use, and never changes, renews, or copies a sign-in."
                     TextWrapping="Wrap" />
                 <TextBlock
                     x:Name="VersionText"

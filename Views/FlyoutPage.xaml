@@ -151,6 +151,15 @@
                     Visibility="Collapsed">
                     <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="github.com" />
                 </HyperlinkButton>
+                <HyperlinkButton
+                    x:Name="CodexLink"
+                    Padding="6,4"
+                    AutomationProperties.Name="Open Codex usage on chatgpt.com"
+                    Click="CodexLink_Click"
+                    ToolTipService.ToolTip="Open Codex usage on chatgpt.com"
+                    Visibility="Collapsed">
+                    <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="chatgpt.com" />
+                </HyperlinkButton>
             </StackPanel>
         </Grid>
     </Grid>

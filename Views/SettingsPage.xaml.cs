@@ -34,7 +34,7 @@ public sealed partial class SettingsPage : Page
     }
 
     private CheckBox[] BarChecks() =>
-        [ClaudeSessionCheck, ClaudeWeeklyCheck, CopilotPremiumCheck, CopilotChatCheck, CopilotCompletionsCheck];
+        [ClaudeSessionCheck, ClaudeWeeklyCheck, CopilotPremiumCheck, CopilotChatCheck, CopilotCompletionsCheck, CodexSessionCheck, CodexWeeklyCheck];
 
     private void BarCheck_Changed(object sender, RoutedEventArgs e)
     {
@@ -50,17 +50,41 @@ public sealed partial class SettingsPage : Page
     private void RenderProviderOrder()
     {
         IReadOnlyList<UsageProvider> order = SettingsService.ProviderOrder;
-        FirstProviderText.Text = UsageFormatter.ProviderName(order[0]);
-        SecondProviderText.Text = UsageFormatter.ProviderName(order[1]);
-        AutomationProperties.SetName(FirstProviderDownButton, $"Move {FirstProviderText.Text} down");
-        AutomationProperties.SetName(SecondProviderUpButton, $"Move {SecondProviderText.Text} up");
+        ProviderOrderPanel.Children.Clear();
+        for (int i = 0; i < order.Count; i++)
+        {
+            string name = UsageFormatter.ProviderName(order[i]);
+            Grid row = new() { ColumnSpacing = 8 };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.Children.Add(new TextBlock { Text = name, VerticalAlignment = VerticalAlignment.Center });
+
+            Button up = MoveButton($"Move {name} up", "Move up", "", i, -1, enabled: i > 0);
+            Grid.SetColumn(up, 1);
+            row.Children.Add(up);
+            Button down = MoveButton($"Move {name} down", "Move down", "", i, 1, enabled: i < order.Count - 1);
+            Grid.SetColumn(down, 2);
+            row.Children.Add(down);
+            ProviderOrderPanel.Children.Add(row);
+        }
     }
 
-    private void MoveProviderUp_Click(object sender, RoutedEventArgs e) =>
-        MoveProvider(int.Parse((string)((Button)sender).Tag, CultureInfo.InvariantCulture), -1);
-
-    private void MoveProviderDown_Click(object sender, RoutedEventArgs e) =>
-        MoveProvider(int.Parse((string)((Button)sender).Tag, CultureInfo.InvariantCulture), 1);
+    private Button MoveButton(string automationName, string toolTip, string glyph, int index, int offset, bool enabled)
+    {
+        Button button = new()
+        {
+            Width = 32,
+            Height = 28,
+            Padding = new Thickness(0),
+            IsEnabled = enabled,
+            Content = new FontIcon { FontSize = 12, Glyph = glyph },
+        };
+        AutomationProperties.SetName(button, automationName);
+        ToolTipService.SetToolTip(button, toolTip);
+        button.Click += (_, _) => MoveProvider(index, offset);
+        return button;
+    }
 
     private void MoveProvider(int index, int offset)
     {
@@ -97,6 +121,23 @@ public sealed partial class SettingsPage : Page
         CopilotCard.Visibility = copilot ? Visibility.Visible : Visibility.Collapsed;
         CopilotSignInText.Text = "Signed in through Copilot CLI or your editor.";
 
+        bool codex;
+        string codexText;
+        try
+        {
+            codex = await CodexUsageService.ReadSignInAsync() is not null;
+            codexText = "Signed in through Codex with ChatGPT.";
+        }
+        catch (IOException)
+        {
+            codex = true;
+            codexText = "Codex's sign-in can't be read right now.";
+        }
+
+        CodexCard.Visibility = codex ? Visibility.Visible : Visibility.Collapsed;
+        CodexSignInText.Text = codexText;
+        CodexBars.Visibility = codex ? Visibility.Visible : Visibility.Collapsed;
+
         string text;
         bool claude = true;
         try
@@ -120,8 +161,8 @@ public sealed partial class SettingsPage : Page
         ClaudeBars.Visibility = claude ? Visibility.Visible : Visibility.Collapsed;
         CopilotBars.Visibility = copilot ? Visibility.Visible : Visibility.Collapsed;
 
-        // Hide the Claude card when only Copilot is set up; with neither, keep it as the place to start.
-        ClaudeCard.Visibility = claude || !copilot ? Visibility.Visible : Visibility.Collapsed;
+        // Hide the Claude card when only another provider is set up; with none, keep it as the place to start.
+        ClaudeCard.Visibility = claude || !(copilot || codex) ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private async Task LoadStartupStateAsync()

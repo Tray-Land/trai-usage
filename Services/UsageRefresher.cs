@@ -63,7 +63,7 @@ internal sealed class UsageRefresher
             IReadOnlyList<UsageProvider> providers = await UsageProviders.DetectAsync(cancellationToken);
             if (providers.Count == 0)
             {
-                throw new UsageUnavailableException(UsageProblem.NotSignedIn, "Neither Claude Code nor GitHub Copilot is signed in.");
+                throw new UsageUnavailableException(UsageProblem.NotSignedIn, "None of Claude Code, GitHub Copilot or Codex is signed in.");
             }
 
             Task<UsageReport>[] fetches = [.. providers.Select(p => UsageProviders.FetchAsync(p, cancellationToken))];

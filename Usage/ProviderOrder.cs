@@ -4,7 +4,7 @@ namespace TraiUsage.Usage;
 internal static class ProviderOrder
 {
     public static readonly UsageProvider[] Defaults =
-        [UsageProvider.Claude, UsageProvider.Copilot];
+        [UsageProvider.Claude, UsageProvider.Copilot, UsageProvider.Codex];
 
     public static IReadOnlyList<UsageProvider> Parse(string? stored)
     {

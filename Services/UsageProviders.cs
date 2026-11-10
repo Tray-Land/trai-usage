@@ -32,6 +32,11 @@ internal static class UsageProviders
             found.Add(UsageProvider.Copilot);
         }
 
+        if (await HasCodexSignInAsync(cancellationToken))
+        {
+            found.Add(UsageProvider.Codex);
+        }
+
         _active = found;
         return Active;
     }
@@ -39,20 +44,36 @@ internal static class UsageProviders
     public static Task<UsageReport> FetchAsync(UsageProvider provider, CancellationToken cancellationToken) => provider switch
     {
         UsageProvider.Copilot => CopilotUsageService.FetchAsync(cancellationToken),
+        UsageProvider.Codex => CodexUsageService.FetchAsync(cancellationToken),
         _ => ClaudeUsageService.FetchAsync(cancellationToken),
     };
 
     public static UsageReport? LastReport(UsageProvider provider) => provider switch
     {
         UsageProvider.Copilot => CopilotUsageService.LastReport,
+        UsageProvider.Codex => CodexUsageService.LastReport,
         _ => ClaudeUsageService.LastReport,
     };
 
     public static Uri UsagePageUri(UsageProvider provider) => provider switch
     {
         UsageProvider.Copilot => CopilotUsageService.UsagePageUri,
+        UsageProvider.Codex => CodexUsageService.UsagePageUri,
         _ => ClaudeUsageService.UsagePageUri,
     };
+
+    private static async Task<bool> HasCodexSignInAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await CodexUsageService.ReadSignInAsync(cancellationToken) is not null;
+        }
+        catch (IOException)
+        {
+            // The file is there but caught mid-write; the fetch that follows reads it again.
+            return true;
+        }
+    }
 
     private static async Task<bool> HasClaudeSignInAsync(CancellationToken cancellationToken)
     {

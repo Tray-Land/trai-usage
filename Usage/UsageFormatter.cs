@@ -92,6 +92,7 @@ internal static class UsageFormatter
     public static string ProviderName(UsageProvider provider) => provider switch
     {
         UsageProvider.Copilot => "GitHub Copilot",
+        UsageProvider.Codex => "Codex",
         _ => "Claude",
     };
 

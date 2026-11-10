@@ -110,7 +110,7 @@ public sealed class TrayBarsIconTests
         UsageReport copilot = Report(UsageProvider.Copilot, new UsageLimit(UsageLimitKind.Monthly, 20, null));
 
         CollectionAssert.AreEqual(
-            new[] { UsageProvider.Copilot, UsageProvider.Claude },
+            new[] { UsageProvider.Copilot, UsageProvider.Claude, UsageProvider.Codex },
             reversed.ToArray());
         CollectionAssert.AreEqual(
             new[] { UsageProvider.Copilot, UsageProvider.Claude },

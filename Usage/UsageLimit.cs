@@ -21,6 +21,7 @@ internal enum UsageProvider
 {
     Claude,
     Copilot,
+    Codex,
 }
 
 /// <summary>One usage limit: how much of it is used and when its window resets.</summary>

@@ -273,7 +273,12 @@ public partial class App : Application
         {
             MenuFlyoutItem usagePage = new()
             {
-                Text = provider == UsageProvider.Copilot ? "Open usage on github.com" : "Open usage on claude.ai",
+                Text = provider switch
+                {
+                    UsageProvider.Copilot => "Open usage on github.com",
+                    UsageProvider.Codex => "Open usage on chatgpt.com",
+                    _ => "Open usage on claude.ai",
+                },
                 Icon = new FontIcon { Glyph = "" },
             };
             usagePage.Click += (_, _) => OpenUsagePage(provider);

@@ -8,9 +8,11 @@ internal static class TrayBarSelection
     public const string CopilotPremium = "copilot:Premium requests";
     public const string CopilotChat = "copilot:Chat";
     public const string CopilotCompletions = "copilot:Completions";
+    public const string CodexSession = "codex:session";
+    public const string CodexWeekly = "codex:weekly";
 
     /// <summary>What the icon shows until the user chooses: every main limit.</summary>
-    public static readonly IReadOnlyList<string> Defaults = [ClaudeSession, ClaudeWeekly, CopilotPremium];
+    public static readonly IReadOnlyList<string> Defaults = [ClaudeSession, ClaudeWeekly, CopilotPremium, CodexSession, CodexWeekly];
 
     /// <summary>The key a limit is chosen by, or null for limits that can't be picked (a single model's weekly limit).</summary>
     public static string? KeyOf(UsageProvider provider, UsageLimit limit) => provider switch
@@ -18,6 +20,8 @@ internal static class TrayBarSelection
         UsageProvider.Copilot when limit.Model is { } model => $"copilot:{model}",
         UsageProvider.Claude when limit.Kind == UsageLimitKind.Session => ClaudeSession,
         UsageProvider.Claude when limit.Kind == UsageLimitKind.Weekly => ClaudeWeekly,
+        UsageProvider.Codex when limit.Kind == UsageLimitKind.Session => CodexSession,
+        UsageProvider.Codex when limit.Kind == UsageLimitKind.Weekly => CodexWeekly,
         _ => null,
     };
 

@@ -145,6 +145,7 @@ public sealed partial class FlyoutPage : Page, IDisposable
         // Only the services that are set up get any UI at all.
         ClaudeLink.Visibility = UsageProviders.Active.Contains(UsageProvider.Claude) ? Visibility.Visible : Visibility.Collapsed;
         CopilotLink.Visibility = UsageProviders.Active.Contains(UsageProvider.Copilot) ? Visibility.Visible : Visibility.Collapsed;
+        CodexLink.Visibility = UsageProviders.Active.Contains(UsageProvider.Codex) ? Visibility.Visible : Visibility.Collapsed;
 
         if (reports.Count == 0)
         {
@@ -157,7 +158,7 @@ public sealed partial class FlyoutPage : Page, IDisposable
 
         // With one provider the header names it and carries its plan; with several, each gets a heading.
         bool several = reports.Count > 1;
-        TitleText.Text = several ? "Usage" : $"{(reports[0].Provider == UsageProvider.Copilot ? "Copilot" : "Claude")} usage";
+        TitleText.Text = several ? "Usage" : $"{(reports[0].Provider == UsageProvider.Copilot ? "Copilot" : UsageFormatter.ProviderName(reports[0].Provider))} usage";
         PlanText.Text = !several ? reports[0].Plan ?? string.Empty : string.Empty;
         PlanBadge.Visibility = PlanText.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
 
@@ -241,8 +242,14 @@ public sealed partial class FlyoutPage : Page, IDisposable
             string name = provider is { } p ? UsageFormatter.ProviderName(p) : "your usage";
             return (unavailable.Problem, provider) switch
             {
-                (UsageProblem.NotSignedIn, null) => ("Sign in to Claude Code or GitHub Copilot",
-                    "Trai Usage shows the plan limits of the account that Claude Code or GitHub Copilot is signed in to. Run claude, or run copilot and then /login, then try again.",
+                (UsageProblem.NotSignedIn, null) => ("Sign in to Claude Code, GitHub Copilot or Codex",
+                    "Trai Usage shows the plan limits of the account that Claude Code, GitHub Copilot or Codex is signed in to. Run claude, run codex and sign in with ChatGPT, or run copilot and then /login, then try again.",
+                    SignInGlyph),
+                (UsageProblem.NotSignedIn, UsageProvider.Codex) => ("Sign in to Codex",
+                    $"{unavailable.Message} Run codex and sign in with ChatGPT (an API key has no plan limits), then try again.",
+                    SignInGlyph),
+                (UsageProblem.SignInExpired, UsageProvider.Codex) => ("Codex's sign-in was rejected",
+                    "Use Codex once to renew it, or run codex login, then refresh.",
                     SignInGlyph),
                 (UsageProblem.NotSignedIn, UsageProvider.Copilot) => ("Sign in to GitHub Copilot",
                     $"{unavailable.Message} Run copilot and then /login (or sign in to Copilot in your editor), then try again.",
@@ -260,7 +267,7 @@ public sealed partial class FlyoutPage : Page, IDisposable
                     "This will try again in a few minutes.",
                     WarningGlyph),
                 (UsageProblem.NoLimits, _) => ("Nothing to track",
-                    "Your Copilot plan has unlimited usage.",
+                    $"{name} reports no usage limits for your plan.",
                     WarningGlyph),
                 _ => ($"Can't read {name}'s usage",
                     "The usage response changed shape. Trai Usage may need an update.",
@@ -286,4 +293,6 @@ public sealed partial class FlyoutPage : Page, IDisposable
     private void ClaudeLink_Click(object sender, RoutedEventArgs e) => App.Current.OpenUsagePage(UsageProvider.Claude);
 
     private void CopilotLink_Click(object sender, RoutedEventArgs e) => App.Current.OpenUsagePage(UsageProvider.Copilot);
+
+    private void CodexLink_Click(object sender, RoutedEventArgs e) => App.Current.OpenUsagePage(UsageProvider.Codex);
 }
