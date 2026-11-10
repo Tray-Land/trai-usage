@@ -2,11 +2,11 @@
 
 ![The Trai Usage flyout above the taskbar: the current session at 88% used with 39% of its time gone, and the current week at 64% used with 29% gone, both marked "Runs out"](docs/flyout.png)
 
-Your Claude and GitHub Copilot plan limits in the Windows notification area. Click the tray icon to see how much of the current session and week (Claude) or the month's premium requests (Copilot) you've used, and how much of each window is left. Claude's "Additional usage" (spend beyond the plan, when you've turned it on) and Copilot's extra billed requests show up on their cards too.
+Your Claude, GitHub Copilot and OpenAI Codex plan limits in the Windows notification area. Codex shows its five-hour session and weekly limits, like Claude. Click the tray icon to see how much of the current session and week (Claude) or the month's premium requests (Copilot) you've used, and how much of each window is left. Claude's "Additional usage" (spend beyond the plan, when you've turned it on) and Copilot's extra billed requests show up on their cards too.
 
 Trai Usage is a WinUI 3 app that lives in the tray. It has no main window: the icon opens a small flyout next to it, styled like the shell's own flyouts. It shows the same numbers as Claude Code's `/usage` and claude.ai's usage page, for the Claude account Claude Code is signed in to, and the quota Copilot's own status menus show, for the GitHub account Copilot is signed in to.
 
-It only shows what you use. If just Claude Code is signed in, you see Claude; if just Copilot, you see Copilot; if both, you see both, each under its own heading. It checks again on every refresh, so signing in to the other one later makes it appear.
+It only shows what you use. Whichever of Claude Code, Copilot and Codex is signed in appears, each under its own heading when there's more than one. It checks again on every refresh, so signing in to the other one later makes it appear.
 
 ## What it shows
 
@@ -55,13 +55,15 @@ For GitHub Copilot, use whichever sign-in you already have:
 - **Copilot CLI:** run `copilot`, then `/login`. Trai Usage finds the account in `~/.copilot/config.json` (or `%COPILOT_HOME%`) and reads its token from Windows Credential Manager (`copilot-cli/https://github.com:<login>`).
 - **VS Code, JetBrains, and other editors:** Copilot's sign-in in `%LOCALAPPDATA%\github-copilot\apps.json` (or `hosts.json`).
 
+For Codex, run `codex` and sign in with ChatGPT. Trai Usage reads `~/.codex/auth.json` (or `%CODEX_HOME%`). A Codex set up with an API key has no plan limits, so it doesn't appear.
+
 Only github.com accounts are read. A GitHub token from the `gh` CLI isn't used.
 
 ## Privacy and footprint
 
 - **What it reads:** Claude Code's sign-in file, `%USERPROFILE%\.claude\.credentials.json` (or `%CLAUDE_CONFIG_DIR%\.credentials.json` when that variable is set). It reads the file fresh for each request and keeps nothing from it but the plan name.
-- **What it never does:** write to that file, renew the token, copy it anywhere, or log it. Claude Code owns the sign-in. Its refresh token changes every time it's used, so renewing it from a second app could sign Claude Code out. The Copilot token is handled the same way: read for each request, sent only to `api.github.com`, never stored or changed.
-- **Network:** one HTTPS request per signed-in service: `api.anthropic.com/api/oauth/usage` (the endpoint behind Claude Code's `/usage`) and `api.github.com/copilot_internal/user` (the one Copilot's editors read). They run every 2 minutes (backing off when a service fails), when the flyout opens with stale data, and when you press Refresh. This includes while the flyout is closed, because the tray icon displays the numbers. Finding out which services are signed in reads local files only.
+- **What it never does:** write to that file, renew the token, copy it anywhere, or log it. Claude Code owns the sign-in. Its refresh token changes every time it's used, so renewing it from a second app could sign Claude Code out. The Copilot token is handled the same way: read for each request, sent only to `api.github.com`, never stored or changed. Codex's token in `auth.json` is handled the same way and sent only to `chatgpt.com`.
+- **Network:** one HTTPS request per signed-in service: `api.anthropic.com/api/oauth/usage` (the endpoint behind Claude Code's `/usage`), `api.github.com/copilot_internal/user` (the one Copilot's editors read) and `chatgpt.com/backend-api/wham/usage` (the one Codex's status display reads). They run every 2 minutes (backing off when a service fails), when the flyout opens with stale data, and when you press Refresh. This includes while the flyout is closed, because the tray icon displays the numbers. Finding out which services are signed in reads local files only.
 - **Stored:** only whether the app has launched before (in its own app settings). The last usage numbers stay in memory for the tooltip and the next open.
 - **Footprint:** a minute after the flyout is dismissed, the window is closed and its memory released, so the idle app is a tray icon and little else.
 
@@ -103,6 +105,7 @@ To release, `.\build-msix-for-gh.ps1` builds a signed x64 and ARM64 `.msixbundle
 | `Controls/UsageCard` | One limit: the Used and Time bars, reset time, countdown, and pace |
 | `Services/ClaudeUsageService.cs` | Reads Claude Code's sign-in and fetches the usage |
 | `Services/CopilotUsageService.cs` | Reads Copilot's sign-in (Credential Manager or editor file) and fetches the quota |
+| `Services/CodexUsageService.cs` | Reads Codex's `auth.json` and fetches the session and weekly limits |
 | `Services/UsageProviders.cs` | Detects which services are signed in and fetches any of them |
 | `Usage/` | WinRT-free logic: response and sign-in parsing, pace math, formatting. The tests link these files |
 | `tests/TraiUsage.Tests` | MSTest tests for `Usage/` |
@@ -113,6 +116,7 @@ To release, `.\build-msix-for-gh.ps1` builds a signed x64 and ARM64 `.msixbundle
 - **"Claude Code's sign-in has expired":** Claude Code renews its token when you use it. Run any Claude Code command, then press Refresh.
 - **"Claude is limiting usage checks":** the endpoint rate-limited the request. The flyout backs off and tries again.
 - **"Sign in to GitHub Copilot":** no Copilot sign-in was found, or the account has no Copilot plan. Run `copilot` and `/login`.
+- **"Sign in to Codex" / "Codex's sign-in was rejected":** run `codex` and sign in with ChatGPT (an API key has no plan limits), or use Codex once to renew an expired sign-in.
 - **"Copilot's sign-in was rejected":** GitHub didn't accept the token. Sign in again with `/login`.
 - **Only one service shows:** the other has no sign-in on this machine. Sign in to it and press Refresh.
 - **The app crashes:** unhandled exceptions are appended to `%TEMP%\TraiUsage-crash.log`.
@@ -122,4 +126,4 @@ To release, `.\build-msix-for-gh.ps1` builds a signed x64 and ARM64 `.msixbundle
 
 MIT, see [LICENSE](LICENSE).
 
-Trai Usage is an independent project and isn't affiliated with or endorsed by Anthropic or GitHub. Claude and Claude Code are trademarks of Anthropic. GitHub and GitHub Copilot are trademarks of GitHub, Inc.
+Trai Usage is an independent project and isn't affiliated with or endorsed by Anthropic, GitHub or OpenAI. Claude and Claude Code are trademarks of Anthropic. GitHub and GitHub Copilot are trademarks of GitHub, Inc.
