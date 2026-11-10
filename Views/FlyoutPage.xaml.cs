@@ -42,7 +42,36 @@ public sealed partial class FlyoutPage : Page, IDisposable
         _refreshedClock.IsRepeating = true;
         _refreshedClock.Tick += (_, _) => RenderRefreshedText();
 
+        CardsPanel.SizeChanged += (_, _) => UpdateStickyHeadings();
         Render();
+    }
+
+    private void CardsScroller_ViewChanged(object? sender, ScrollViewerViewChangedEventArgs e) => UpdateStickyHeadings();
+
+    // Pins each provider heading to the top while its cards scroll past, until the next heading takes over.
+    private void UpdateStickyHeadings()
+    {
+        UIElementCollection rows = CardsPanel.Children;
+        double scroll = CardsScroller.VerticalOffset;
+        for (int i = 0; i < rows.Count; i++)
+        {
+            if (rows[i] is not ProviderHeading heading)
+            {
+                continue;
+            }
+
+            double end = CardsPanel.ActualHeight;
+            for (int next = i + 1; next < rows.Count; next++)
+            {
+                if (rows[next] is ProviderHeading following)
+                {
+                    end = following.ActualOffset.Y;
+                    break;
+                }
+            }
+
+            heading.Pin(scroll, end);
+        }
     }
 
     /// <summary>The flyout opened: redraw the countdowns, then refresh if stale and poll until it hides.</summary>
@@ -121,6 +150,7 @@ public sealed partial class FlyoutPage : Page, IDisposable
         {
             TitleText.Text = "Usage";
             PlanBadge.Visibility = Visibility.Collapsed;
+            HeaderWarning.Show(null, string.Empty);
             UpdatedText.Text = string.Empty;
             return;
         }
@@ -131,6 +161,13 @@ public sealed partial class FlyoutPage : Page, IDisposable
         PlanText.Text = !several ? reports[0].Plan ?? string.Empty : string.Empty;
         PlanBadge.Visibility = PlanText.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
 
+        // A problem affects one provider (or all of them); it is flagged once, in that provider's header.
+        (string, string)? WarningFor(UsageReport report) => _problem is { } details &&
+            (_problemProvider is null || _problemProvider == report.Provider)
+            ? (details.Title, details.Message)
+            : null;
+        HeaderWarning.Show(several ? null : WarningFor(reports[0]), TitleText.Text);
+
         // Reuse cards across refreshes; the set of limits rarely changes.
         UIElementCollection rows = CardsPanel.Children;
         int index = 0;
@@ -138,29 +175,23 @@ public sealed partial class FlyoutPage : Page, IDisposable
         {
             if (several)
             {
-                TextBlock heading = ReuseOrReplace(rows, index++, () => new TextBlock
-                {
-                    Margin = new Thickness(2, 4, 0, 0),
-                    Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"],
-                });
-                heading.Text = report.Plan is { } plan
-                    ? $"{UsageFormatter.ProviderName(report.Provider)} · {plan}"
-                    : UsageFormatter.ProviderName(report.Provider);
+                ProviderHeading heading = ReuseOrReplace(rows, index++, () => new ProviderHeading());
+                heading.Show(
+                    report.Plan is { } plan
+                        ? $"{UsageFormatter.ProviderName(report.Provider)} · {plan}"
+                        : UsageFormatter.ProviderName(report.Provider),
+                    WarningFor(report));
             }
 
             foreach (UsageLimit limit in report.Limits)
             {
-                (string, string)? warning = _problem is { } warningDetails &&
-                    (_problemProvider is null || _problemProvider == report.Provider)
-                    ? (warningDetails.Title, warningDetails.Message)
-                    : null;
                 UsageCard card = ReuseOrReplace(rows, index++, () =>
                 {
                     UsageCard created = new();
                     created.CollapsedChanged += (_, _) => ContentChanged?.Invoke(this, EventArgs.Empty);
                     return created;
                 });
-                card.Show(report.Provider, limit, now, warning);
+                card.Show(report.Provider, limit, now);
             }
         }
 
@@ -168,6 +199,8 @@ public sealed partial class FlyoutPage : Page, IDisposable
         {
             rows.RemoveAt(rows.Count - 1);
         }
+
+        UpdateStickyHeadings();
 
         RenderRefreshedText();
     }

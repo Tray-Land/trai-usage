@@ -36,17 +36,16 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!--  Title, reset time, warning, and collapse control stay visible.  -->
+            <!--  Title, reset time, and collapse control stay visible.  -->
             <Grid Padding="10,8,10,8" ColumnSpacing="4">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <Button
                     x:Name="HeaderButton"
-                    Grid.ColumnSpan="4"
+                    Grid.ColumnSpan="3"
                     Padding="4"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"
@@ -68,40 +67,9 @@
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                     IsHitTestVisible="False"
                     Style="{StaticResource CaptionTextBlockStyle}" />
-                <Button
-                    x:Name="WarningButton"
-                    Grid.Column="2"
-                    Width="24"
-                    Height="24"
-                    Padding="0"
-                    VerticalAlignment="Center"
-                    AutomationProperties.Name="Show usage warning"
-                    Background="Transparent"
-                    BorderThickness="0"
-                    ToolTipService.ToolTip="Show usage warning"
-                    Visibility="Collapsed">
-                    <FontIcon
-                        FontSize="14"
-                        Foreground="{ThemeResource SystemFillColorCautionBrush}"
-                        Glyph="&#xE7BA;" />
-                    <Button.Flyout>
-                        <Flyout>
-                            <StackPanel MaxWidth="280" Spacing="6">
-                                <TextBlock
-                                    x:Name="WarningTitle"
-                                    Style="{StaticResource BodyStrongTextBlockStyle}"
-                                    TextWrapping="Wrap" />
-                                <TextBlock
-                                    x:Name="WarningMessage"
-                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                    TextWrapping="Wrap" />
-                            </StackPanel>
-                        </Flyout>
-                    </Button.Flyout>
-                </Button>
                 <FontIcon
                     x:Name="CollapseIcon"
-                    Grid.Column="3"
+                    Grid.Column="2"
                     VerticalAlignment="Center"
                     FontSize="10"
                     Glyph="&#xE70E;"
