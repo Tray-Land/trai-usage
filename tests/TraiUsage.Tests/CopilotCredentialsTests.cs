@@ -21,7 +21,7 @@ public sealed class CopilotCredentialsTests
         (string Host, string Login)? login = CopilotCredentials.ParseCliLogin(json);
 
         Assert.AreEqual(("https://github.com", "octocat"), login);
-        Assert.AreEqual("copilot-cli/https://github.com:octocat", CopilotCredentials.CliCredentialTarget(login!.Value.Host, login.Value.Login));
+        Assert.AreSequenceEqual([ "copilot-cli/https://github.com:octocat", "https://github.com:octocat.copilot-cli", "https://github.com:octocat:github.copilot-cli" ], CopilotCredentials.CliCredentialTargets(login!.Value.Host, login.Value.Login));
     }
 
     [TestMethod]

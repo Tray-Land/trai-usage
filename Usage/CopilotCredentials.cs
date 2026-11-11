@@ -32,9 +32,9 @@ internal static class CopilotCredentials
         return [Path.Combine(folder, "apps.json"), Path.Combine(folder, "hosts.json")];
     }
 
-    /// <summary>The Credential Manager target the Copilot CLI stores a token under.</summary>
-    public static string CliCredentialTarget(string host, string login) =>
-        $"copilot-cli/{host.TrimEnd('/')}:{login}";
+    /// <summary>The Credential Manager targets the Copilot CLI may store a token under.</summary>
+    public static string[] CliCredentialTargets(string host, string login) =>
+        [ $"copilot-cli/{host.TrimEnd('/')}:{login}", $"{host.TrimEnd('/')}:{login}.copilot-cli", $"{host.TrimEnd('/')}:{login}:github.copilot-cli" ];
 
     /// <summary>
     /// The account the Copilot CLI last signed in, from its <c>config.json</c>, or null when there
